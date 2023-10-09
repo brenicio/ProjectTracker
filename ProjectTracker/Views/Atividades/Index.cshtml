@@ -1,0 +1,2107 @@
+﻿@using ProjectTracker.Models.ViewModels
+@{
+    ViewData["Title"] = "Index";
+    Layout = "~/Views/Shared/_LayoutWithNoFooter.cshtml";
+    var classBg = String.Empty;
+    var classBtnPlay = String.Empty;
+    var classBgPlay = String.Empty;
+    var classBgPause = String.Empty;
+    var classBtnPause = String.Empty;
+    var classBgNaoIniciado = String.Empty;
+    var classBtnNaoIniciado = String.Empty;
+    var classBtnStop = String.Empty;
+    var classBtnTrash = "disabled";
+    var classHidden = String.Empty;
+    var modal = String.Empty;
+    var idBotaoModal = String.Empty;
+    ProcessoUsuario? procs = null;
+    if (Model.ProcessosUsuarios != null)
+    {
+    }
+
+
+}
+@model ViewLogProcesso
+
+<div class="container-fluid">
+    <div class="row justify-content-end">
+        <div class="col-2">
+           <mark class="bg-primary bg-opacity-10"> USUARIO: @Model.Usuario.Login</mark>
+        </div>
+    </div>
+    <div id="alertContainer">
+    </div>
+
+    <h2>Atividades</h2>
+    <br />
+    <div class="row">
+        <div class="col-5 col-md-5">
+            <select id="selectEmpresa" class="form-select form-select-lg" aria-label=".form-select-lg example">
+                <option value=" " selected>Selecione uma empresa</option>
+                @foreach (var empresa in Model.Empresas)
+                {
+                    <option value="@empresa.Id">@empresa.Cidade - @empresa.Nome</option>
+                }
+            </select>
+        </div>
+        <div class="col-3 col-md-3">
+            <select id="selectArea" class="form-select form-select-lg" aria-label=".form-select-lg example">
+                <option value=" " selected>Selecione uma area</option>
+                @foreach (var area in Model.Areas)
+                {
+                    <option value="@area.Id">@area.Nome</option>
+                }
+            </select>
+        </div>
+        <div class="col-3 col-md-3">
+            <select id="selectProcesso" class="form-select form-select-lg" aria-label=".form-select-lg example">
+                <option value=" ">Selecione um processo</option>
+            </select>
+        </div>
+        <div class="col-1 col-md-1 align-self-center">
+            <button id="btnAddprocesso" type="button" class="btn btn-xl btn-circle btn-success">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+    </div>
+
+
+
+
+
+    <div class="row"><input type="hidden" id="timestamp" /><br /></div>
+    <div class="row"><br /></div>
+
+    <div class="row">
+        <p class="text-lg-center text-uppercase fs-5">LISTA DE ATIVIDADES</p>
+        <br />
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <table id="tableProcesso" class="table table-responsive">
+                <thead>
+                    <tr class="text-center">
+                        <th scope="col"></th>
+                        <th scope="col">#</th>
+                        <th scope="col">Atividade</th>
+                        <th scope="col">Empresa</th>
+                        <th scope="col">Area</th>
+                        <th scope="col">Processo</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Data Inicio</th>
+                        @*<th scope="col">Data Fim</th>*@
+                        <th scope="col">Tempo Decorrido</th>
+                        <th scope="col">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="text-center">
+                    @if (Model.ProcessosUsuarios != null)
+                    {
+                        Model.ProcessosUsuarios.Reverse();
+
+                        @for (int i = 0; i < Model.ProcessosUsuarios.Count; i++)
+                        {
+                            if (Model.ProcessosUsuarios[i].Status.Equals("INICIO"))
+                            {
+                                var testeInicio = Model.ProcessosUsuarios[i].Id;
+
+
+                                classBgPlay = "bg-success bg-opacity-10 iniciado";
+                                classBg = "bg-success bg-opacity-10 iniciado";
+                                classBtnPause = "btn-secondary";
+                                classBtnTrash = "disabled";
+                            }
+                            @*else
+                    {
+                    classBgPlay = String.Empty;
+                    classBgPause = String.Empty;
+                    classBtnTrash = "disabled";
+                    }*@
+                            else if (Model.ProcessosUsuarios[i].Status.Equals("PAUSA"))
+                            {
+                                var testePausa = Model.ProcessosUsuarios[i].Id;
+                                classBgPause = "bg-warning bg-opacity-10 pausado";
+                                classBg = "bg-warning bg-opacity-10 pausado";
+                                classBgPlay = String.Empty;
+                                classBgNaoIniciado = String.Empty;
+                                classBtnPause = "btn-warning disabled";
+                                classBtnTrash = "disabled";
+                            }
+                            else if (Model.ProcessosUsuarios[i].Status.Equals("NAO INICIADO"))
+                            {
+                                var testeNAOiniciado = Model.ProcessosUsuarios[i].Id;
+                                classBgNaoIniciado = "bg-secondary bg-opacity-10 naoiniciado";
+                                classBg = "bg-secondary bg-opacity-10 naoiniciado";
+                                classBtnNaoIniciado = "btn-secondary";
+                                classBtnPause = "btn-secondary disabled";
+                                classBgPause = String.Empty;
+                                classBgPlay = String.Empty;
+                                classBtnTrash = "enabled";
+                            }
+
+                            <tr data-row=@Model.ProcessosUsuarios[i].Id class="@classBg" id="@Model.ProcessosUsuarios[i].Id">
+                                <th data-row=@Model.ProcessosUsuarios[i].Id><i id="btnTrash" class="bi bi-trash3 @classBtnTrash"></i></th>
+                                <th data-row=@Model.ProcessosUsuarios[i].Id class="numero-linha" scope="row">@(i + 1)</th>
+                                <td data-row=@Model.ProcessosUsuarios[i].Id class="idAtividade">@Model.ProcessosUsuarios[i].Id</td>
+                                <td data-row=@Model.ProcessosUsuarios[i].Id class="empresa" id="@Model.Empresas.Where(c=> c.Id == Model.ProcessosUsuarios[i].IdEmpresa).First().Id">@Model.Empresas.Where(c=> c.Id == Model.ProcessosUsuarios[i].IdEmpresa).First().Cidade - @Model.Empresas.Where(c=> c.Id == Model.ProcessosUsuarios[i].IdEmpresa).First().Nome</td>
+                                <td data-row=@Model.ProcessosUsuarios[i].Id class="area" id="@Model.Areas.Where(c=> c.Id == (Model.Processos.Where(c=> c.Id == Model.ProcessosUsuarios[i].IdProcesso).First().IdArea)).First().Id"> @Model.Areas.Where(c=> c.Id == (Model.Processos.Where(c=> c.Id == Model.ProcessosUsuarios[i].IdProcesso).First().IdArea)).First().Nome</td>
+                                <td data-row=@Model.ProcessosUsuarios[i].Id class="processo" id="@Model.Processos.Where(c=> c.Id == Model.ProcessosUsuarios[i].IdProcesso).First().Id">@Model.Processos.Where(c=> c.Id == Model.ProcessosUsuarios[i].IdProcesso).First().Nome</td>
+                                <td data-row=@Model.ProcessosUsuarios[i].Id class="status">@Model.ProcessosUsuarios[i].Status</td>
+                                <td data-row=@Model.ProcessosUsuarios[i].Id class="datainicial">@Model.ProcessosUsuarios[i].DataInicial</td>
+                                @*<td data-row=@Model.ProcessosUsuarios[i].Id class="datafinal">@Model.ProcessosUsuarios[i].DataFinal</td>*@
+                                @if (@Model.ProcessosUsuarios[i].Status.Equals("INICIO"))
+                                {
+                                    <td data-row=@Model.ProcessosUsuarios[i].Id class="cronometro"></td>
+                                }
+                                else
+                                {
+                                    <td data-row=@Model.ProcessosUsuarios[i].Id class="cronometro"></td>
+                                }
+
+                                <td data-row=@Model.ProcessosUsuarios[i].Id class="acoes">
+                                    <div class="col d-grid gap-2 d-md-flex justify-content-md-end">
+                                        <div class="col">
+                                            @if (Model.ProcessosUsuarios[i].Status.Equals("INICIO"))
+                                            {
+                                                classBtnPlay = "btn-success";
+                                                modal = "#modalProcessoIniciado";
+                                            }
+                                            else
+                                            {
+                                                classBtnPlay = "btn-secondary";
+                                                modal = "#modalIniciaProcesso";
+                                            }
+
+                                            @if (Model.ProcessosUsuarios[i].Status.Equals("NAO INICIADO"))
+                                            {
+                                                classBtnStop = "disabled";
+                                            }
+                                            else
+                                            {
+                                                classBtnStop = "enabled";
+                                            }
+                                            <button id="btnPlay" type="button" class="btn @classBtnPlay btn-sm" @* data-bs-toggle="modal" data-bs-target="@modal"*@>
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="25" fill="currentColor" class="bi bi-play-fill" viewBox="0 0 16 16">
+                                                    <path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="col">
+
+
+                                            <button id="btnPause" type="button" class="btn btn-sm @classBtnPause">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="25" fill="currentColor" class="bi bi-pause-fill" viewBox="0 0 16 16">
+                                                    <path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                        <div class="col">
+                                            <button id="btnStop" type="button" class="btn btn-secondary btn-sm @classBtnStop">
+                                                @*<svg xmlns="http://www.w3.org/2000/svg" width="20" height="25" fill="currentColor" class="bi bi-check-square" viewBox="0 0 16 16">
+                                        <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
+                                        <path d="M10.97 4.97a.75.75 0 0 1 1.071 1.05l-3.992 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.235.235 0 0 1 .02-.022z" />
+                                        </svg>*@
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="25" fill="currentColor" class="bi bi-stop-fill" viewBox="0 0 16 16">
+                                                    <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @if (Model.ProcessosUsuariosHistorico.Count == 0)
+    {
+        classHidden = "visually-hidden";
+    }
+    else
+    {
+        classHidden = String.Empty;
+    }
+    <br />
+    <div class="row">
+        <p id="textTableHistorico" class="text-lg-center text-uppercase fs-5 @classHidden">ATIVIDADES FINALIZADAS</p>
+        <br />
+    </div>
+    <div class="row">
+        <div class="col">
+            <table id="tableHistorico" class="table table-responsive @classHidden">
+                <thead>
+                    <tr class="text-center">
+                        <th scope="col"></th>
+                        <th scope="col">#</th>
+                        <th scope="col">Atividade</th>
+                        <th scope="col">Empresa</th>
+                        <th scope="col">Area</th>
+                        <th scope="col">Processo</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Data Inicio</th>
+                        <th scope="col">Tempo Decorrido</th>
+                        <th scope="col">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="text-center">
+                    @if (Model.ProcessosUsuariosHistorico != null)
+                    {
+                        Model.ProcessosUsuariosHistorico.Reverse();
+                        for (int i = 0; i < Model.ProcessosUsuariosHistorico.Count; i++)
+                        {
+                            <tr data-row=@Model.ProcessosUsuariosHistorico[i].Id class="bg-primary bg-opacity-10" id="@Model.ProcessosUsuariosHistorico[i].Id">
+                                <th data-row=@Model.ProcessosUsuariosHistorico[i].Id><i id="btnCheck" class="bi bi-check2"></i></th>
+                                <th data-row=@Model.ProcessosUsuariosHistorico[i].Id class="numero-linha" scope="row">@(i + 1)</th>
+                                <td data-row=@Model.ProcessosUsuariosHistorico[i].Id class="idAtividade">@Model.ProcessosUsuariosHistorico[i].Id</td>
+                                <td data-row=@Model.ProcessosUsuariosHistorico[i].Id class="empresa" id="@Model.Empresas.Where(c=> c.Id == Model.ProcessosUsuariosHistorico[i].IdEmpresa).First().Id">@Model.Empresas.Where(c=> c.Id == Model.ProcessosUsuariosHistorico[i].IdEmpresa).First().Cidade - @Model.Empresas.Where(c=> c.Id == Model.ProcessosUsuariosHistorico[i].IdEmpresa).First().Nome</td>
+                                <td data-row=@Model.ProcessosUsuariosHistorico[i].Id class="area" id="@Model.Areas.Where(c=> c.Id == (Model.Processos.Where(c=> c.Id == Model.ProcessosUsuariosHistorico[i].IdProcesso).First().IdArea)).First().Id"> @Model.Areas.Where(c=> c.Id == (Model.Processos.Where(c=> c.Id == Model.ProcessosUsuariosHistorico[i].IdProcesso).First().IdArea)).First().Nome</td>
+                                <td data-row=@Model.ProcessosUsuariosHistorico[i].Id class="processo" id="@Model.Processos.Where(c=> c.Id == Model.ProcessosUsuariosHistorico[i].IdProcesso).First().Id">@Model.Processos.Where(c=> c.Id == Model.ProcessosUsuariosHistorico[i].IdProcesso).First().Nome</td>
+                                <td data-row=@Model.ProcessosUsuariosHistorico[i].Id class="status">@Model.ProcessosUsuariosHistorico[i].Status</td>
+                                <td data-row=@Model.ProcessosUsuariosHistorico[i].Id class="datainicial">@Model.ProcessosUsuariosHistorico[i].DataInicial</td>
+                                <td data-row=@Model.ProcessosUsuariosHistorico[i].Id class="cronometro">@Model.ProcessosUsuariosHistorico[i].TempoDecorrido</td>
+                                <td data-row=@Model.ProcessosUsuariosHistorico[i].Id class="acoes ps-5 pe-5">
+                                    <div class="col">
+                                        <button id="btnReload" type="button" class="btn btn-md btn-primary">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+
+    <!-- Modal -->
+    <div class="modal fade" id="modalIniciaProcesso" tabindex="-1" aria-labelledby="modalIniciaProcesso" aria-hidden="true">
+        <div id="modaltamanho" class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Iniciar nova atividade</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    @*@if (procs != null)
+                    {
+                    idBotaoModal = "btnIniciarPausar";*@
+                    <div>
+                        <div class="row">
+
+                            <div class="col fs-4">
+
+
+                                <div class="row mt-2">
+                                    <div class="col-1 mt-2">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning fs-2"></i>
+                                    </div>
+                                    <div class="col pe-0 mt-3">
+                                        <small><p class="row-text">Deseja iniciar um <small><mark class="bg-danger bg-opacity-10 fw-bold">NOVO PROCESSO?</mark></small></p></small>
+                                    </div>
+                                </div>
+                                <div class="row mt-5">
+                                    <div class="col">
+                                        @*<table id="tableModalIniciaProcesso" class="table table-responsive">
+                                        <thread>
+                                        <tr>
+                                        <th class="fs-6" scope="col">Empresa</th>
+                                        <th class="fs-6" scope="col">Area</th>
+                                        <th class="fs-6" scope="col">Processo</th>
+                                        <th class="fs-6" scope="col">Status</th>
+                                        <th class="fs-6" scope="col">Dt.Inicio</th>
+                                        <th class="fs-6" scope="col">Dt.Fim</th>
+                                        <th class="fs-6" scope="col">Tempo</th>
+                                        </tr>
+                                        </thread>
+                                        <tbody>
+                                        <tr class="bg-danger bg-opacity-10 finalizar">
+                                        <th class="fs-6 empresa" scope="row">1</th>
+                                        <td class="fs-6 area">Mark</td>
+                                        <td class="fs-6 processo">Otto</td>
+                                        <td class="fs-6 status">Otto</td>
+                                        <td class="fs-6 dtinicio">mdo</td>
+                                        <td class="fs-6 dtfim">mdo</td>
+                                        <td class="fs-6 tempodecorrido">mdo</td>
+                                        </tr>
+                                        </tbody>
+                                        </table>*@
+                                    </div>
+
+                                </div>
+
+
+
+                            </div>
+                        </div>
+
+
+                    </div>
+                    <p class="lead">
+
+                    </p>
+                    @* }
+                    else
+                    {
+                    idBotaoModal = "btnIniciar";
+                    <h1>teste</h1>
+                    }*@
+                </div>
+                <div class="modal-footer">
+                    <button id="btnSair" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button id="btnIniciar" type="button" class="btn btn-primary">Iniciar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Inicia e Pausa Processo -->
+    <div class="modal fade" id="modalIniciaPausaProcesso" tabindex="-1" aria-labelledby="modalIniciaPausaProcesso" aria-hidden="true">
+        <div id="modaltamanho" class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Iniciar nova atividade</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    @*@if (procs != null)
+                    {
+                    idBotaoModal = "btnIniciarPausar";*@
+                    <div>
+                        <div class="row">
+
+                            <div class="col fs-4">
+
+
+                                <div class="row mt-2">
+                                    <div class="col-1 mt-2">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning fs-2"></i>
+                                    </div>
+                                    <div class="col pe-0 mt-3">
+                                        <small>
+                                            <p class="row-text">
+                                                Foi detectado que existe uma atividade com status <small><mark class="bg-success bg-opacity-10 fw-bold">INICIO</mark></small> na sua lista de atividades! Deseja
+                                                prosseguir iniciando outra atividade? A atividade abaixo será <mark class="bg-warning bg-opacity-10 fw-bold">PAUSADA.</mark>
+                                            </p>
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="row mt-5">
+                                    <div class="col">
+                                        <table id="tableModalIniciaPausaProcesso" class="table table-responsive">
+                                            <thread>
+                                                <tr>
+                                                    <th class="fs-6" scope="col">Empresa</th>
+                                                    <th class="fs-6" scope="col">Area</th>
+                                                    <th class="fs-6" scope="col">Processo</th>
+                                                    <th class="fs-6" scope="col">Status</th>
+                                                    <th class="fs-6" scope="col">Dt.Inicio</th>
+                                                    <th class="fs-6" scope="col">Dt.Pausa</th>
+                                                    <th class="fs-6" scope="col">Tempo</th>
+                                                </tr>
+                                            </thread>
+                                            <tbody>
+                                                <tr class="bg-success bg-opacity-10 finalizar">
+                                                    <th class="fs-6 empresa" scope="row">1</th>
+                                                    <td class="fs-6 area">Mark</td>
+                                                    <td class="fs-6 processo">Otto</td>
+                                                    <td class="fs-6 status">Otto</td>
+                                                    <td class="fs-6 dtinicio">mdo</td>
+                                                    <td class="fs-6 dtfim">mdo</td>
+                                                    <td class="fs-6 tempodecorrido">mdo</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                </div>
+
+
+
+                            </div>
+                        </div>
+
+
+                    </div>
+                    <p class="lead">
+
+                    </p>
+                    @* }
+                    else
+                    {
+                    idBotaoModal = "btnIniciar";
+                    <h1>teste</h1>
+                    }*@
+                </div>
+                <div class="modal-footer">
+                    <button id="btnSair" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button id="btnIniciarPausar" type="button" class="btn btn-primary">Iniciar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Itens Duplicados -->
+    <div class="modal fade" id="modalItensDuplicados" tabindex="-1" aria-labelledby="modalItensDuplicados" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Atividade Existente!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    @*@if (procs != null)
+                    {*@
+                    <div>
+                        <div class="row">
+                            <div class="col-1 mt-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-exclamation-triangle-fill text-danger" viewBox="0 0 16 16">
+                                    <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+                                </svg>
+                            </div>
+                            <div class="col fs-5">
+                                <p>
+                                    <small>
+                                        Foi detectado que a atividade que deseja inserir ja existe na <mark class="bg-danger bg-opacity-10 fw-bold">LISTA DE ATIVIDADES</mark>.
+                                    </small>
+                                </p>
+                            </div>
+                        </div>
+                        <br>
+
+
+                    </div>
+                    <p class="lead">
+
+                    </p>
+                    @*}*@
+                    @*else
+                    {
+                    <h1>teste</h1>
+                    }*@
+                </div>
+                <div class="modal-footer">
+                    <button id="btnSair" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Processo Iniciado -->
+    <div class="modal fade" id="modalProcessoIniciado" tabindex="-1" aria-labelledby="modalProcessoIniciado" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Atividade Iniciada</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    @*@if (logs != null)
+                    {*@
+                    <div>
+                        <div class="row">
+                            <div class="col-1 mt-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-exclamation-triangle-fill text-warning" viewBox="0 0 16 16">
+                                    <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
+                                </svg>
+                            </div>
+                            <div class="col fs-5">
+                                <p>
+                                    <small>
+                                        Essa atividade ja está <mark class="bg-success bg-opacity-10 fw-bold">INICIADA!</mark>.
+                                    </small>
+                                </p>
+                            </div>
+                        </div>
+                        <br>
+
+
+                    </div>
+                    <p class="lead">
+
+                    </p>
+                    @* }
+                    else
+                    {
+                    <h1>teste</h1>
+                    }*@
+                </div>
+                <div class="modal-footer">
+                    <button id="btnSair" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Processo Finalizado -->
+    <div class="modal fade" id="modalFinalizaProcesso" tabindex="-1" aria-labelledby="modalFinalizaProcesso" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Finalizar Atividade?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    @*@if (logs != null)
+                    {*@
+                    <div>
+                        <div class="row">
+
+                            <div class="col fs-5">
+
+
+                                <div class="row mt-2">
+                                    <div class="col-1 mt-2">
+                                        <i class="bi bi-exclamation-triangle-fill text-danger fs-2"></i>
+                                    </div>
+                                    <div class="col pe-0 mt-3">
+                                        <small><p class="row-text">A atividade abaixo sera <small><mark class="bg-danger bg-opacity-10 fw-bold">FINALIZADA</mark></small> e sairá da lista de atividades.</p></small>
+                                    </div>
+                                    @* <div class="col-1 ps-0">
+                                    <small><mark class="bg-danger bg-opacity-10 fw-bold">INICIADA!</mark></small>
+                                    </div>*@
+                                </div>
+                                <div class="row mt-5">
+                                    <div class="col">
+                                        <table id="tableModalFinalizar" class="table table-responsive">
+                                            <thread>
+                                                <tr>
+                                                    <th class="fs-6" scope="col">Empresa</th>
+                                                    <th class="fs-6" scope="col">Area</th>
+                                                    <th class="fs-6" scope="col">Processo</th>
+                                                    <th class="fs-6" scope="col">Status</th>
+                                                    <th class="fs-6" scope="col">Dt.Inicio</th>
+                                                    <th class="fs-6" scope="col">Dt.Fim</th>
+                                                    <th class="fs-6" scope="col">Tempo</th>
+                                                </tr>
+                                            </thread>
+                                            <tbody>
+                                                <tr class="bg-danger bg-opacity-10 finalizar">
+                                                    <th class="fs-6 empresa" scope="row">1</th>
+                                                    <td class="fs-6 area">Mark</td>
+                                                    <td class="fs-6 processo">Otto</td>
+                                                    <td class="fs-6 status">Otto</td>
+                                                    <td class="fs-6 dtinicio">mdo</td>
+                                                    <td class="fs-6 dtfim">mdo</td>
+                                                    <td class="fs-6 tempodecorrido">mdo</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                </div>
+
+
+
+                            </div>
+                        </div>
+                        <br>
+
+
+                    </div>
+                    <p class="lead">
+
+                    </p>
+                    @* }
+                    else
+                    {
+                    <h1>teste</h1>
+                    }*@
+                </div>
+                <div class="modal-footer">
+                    <button id="btnSair" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button id="btnFinalizar" type="button" class="btn btn-danger" data-bs-dismiss="modal">Finalizar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Processo Excluido -->
+    <div class="modal fade" id="modalExcluiProcesso" tabindex="-1" aria-labelledby="modalExcluiProcesso" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Excluir Atividade?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    @*@if (logs != null)
+                    {*@
+                    <div>
+                        <div class="row">
+
+                            <div class="col fs-5">
+
+
+                                <div class="row mt-2">
+                                    <div class="col-1 mt-2">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning fs-2"></i>
+                                    </div>
+                                    <div class="col pe-0 mt-3">
+                                        <small><p class="row-text">A atividade abaixo sera <small><mark class="bg-primary bg-opacity-10 fw-bold">EXCLUIDA</mark></small> e sairá da lista de atividades e <mark class="bg-primary bg-opacity-10 fw-bold">não sera possivel retornar a lista.</mark></p></small>
+                                    </div>
+                                    @* <div class="col-1 ps-0">
+                                    <small><mark class="bg-danger bg-opacity-10 fw-bold">INICIADA!</mark></small>
+                                    </div>*@
+                                </div>
+                                <div class="row mt-5">
+                                    <div class="col">
+                                        <table id="tableModalExcluir" class="table table-responsive">
+                                            <thread>
+                                                <tr>
+                                                    <th class="fs-6" scope="col">Empresa</th>
+                                                    <th class="fs-6" scope="col">Area</th>
+                                                    <th class="fs-6" scope="col">Processo</th>
+                                                    <th class="fs-6" scope="col">Status</th>
+                                                    <th class="fs-6" scope="col">Dt.Inicio</th>
+                                                    <th class="fs-6" scope="col">Dt.Fim</th>
+                                                    <th class="fs-6" scope="col">Tempo</th>
+                                                </tr>
+                                            </thread>
+                                            <tbody>
+                                                <tr class="bg-primary bg-opacity-10 excluir">
+                                                    <th class="fs-6 empresa" scope="row">1</th>
+                                                    <td class="fs-6 area">Mark</td>
+                                                    <td class="fs-6 processo">Otto</td>
+                                                    <td class="fs-6 status">Otto</td>
+                                                    <td class="fs-6 dtinicio">mdo</td>
+                                                    <td class="fs-6 dtfim">mdo</td>
+                                                    <td class="fs-6 tempodecorrido">mdo</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                </div>
+
+
+
+                            </div>
+                        </div>
+                        <br>
+
+
+                    </div>
+                    <p class="lead">
+
+                    </p>
+                    @* }
+                    else
+                    {
+                    <h1>teste</h1>
+                    }*@
+                </div>
+                <div class="modal-footer">
+                    <button id="btnSair" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button id="btnExcluir" type="button" class="btn btn-primary" data-bs-dismiss="modal">Excluir</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Processo Reload -->
+    <div class="modal fade" id="modalReiniciarProcesso" tabindex="-1" aria-labelledby="modalReiniciarProcesso" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Reiniciar Atividade?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+
+                    @*@if (logs != null)
+                    {*@
+                    <div>
+                        <div class="row">
+
+                            <div class="col fs-5">
+
+
+                                <div class="row mt-2">
+                                    <div class="col-1 mt-2">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning fs-2"></i>
+                                    </div>
+                                    <div class="col pe-0 mt-3">
+                                        <small><p class="row-text">A atividade abaixo sera <small><mark class="bg-primary bg-opacity-10 fw-bold">REINICIADA</mark></small> e irá voltar para a lista de atividades com o status <mark class="bg-warning bg-opacity-10 fw-bold">PAUSADA.</mark></p></small>
+                                    </div>
+                                    @* <div class="col-1 ps-0">
+                                    <small><mark class="bg-danger bg-opacity-10 fw-bold">INICIADA!</mark></small>
+                                    </div>*@
+                                </div>
+                                <div class="row mt-5">
+                                    <div class="col">
+                                        <table id="tableModalReiniciar" class="table table-responsive">
+                                            <thread>
+                                                <tr>
+                                                    <th class="fs-6" scope="col">Empresa</th>
+                                                    <th class="fs-6" scope="col">Area</th>
+                                                    <th class="fs-6" scope="col">Processo</th>
+                                                    <th class="fs-6" scope="col">Status</th>
+                                                    <th class="fs-6" scope="col">Dt.Inicio</th>
+                                                    <th class="fs-6" scope="col">Dt.Fim</th>
+                                                    <th class="fs-6" scope="col">Tempo</th>
+                                                </tr>
+                                            </thread>
+                                            <tbody>
+                                                <tr class="bg-primary bg-opacity-10 reiniciar">
+                                                    <th class="fs-6 empresa" scope="row">1</th>
+                                                    <td class="fs-6 area">Mark</td>
+                                                    <td class="fs-6 processo">Otto</td>
+                                                    <td class="fs-6 status">Otto</td>
+                                                    <td class="fs-6 dtinicio">mdo</td>
+                                                    <td class="fs-6 dtfim">mdo</td>
+                                                    <td class="fs-6 tempodecorrido">mdo</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                </div>
+
+
+
+                            </div>
+                        </div>
+                        <br>
+
+
+                    </div>
+                    <p class="lead">
+
+                    </p>
+                    @* }
+                    else
+                    {
+                    <h1>teste</h1>
+                    }*@
+                </div>
+                <div class="modal-footer">
+                    <button id="btnSair" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button id="btnReiniciar" type="button" class="btn btn-primary" data-bs-dismiss="modal">Reiniciar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+@*Script de acao dos selects da DOM*@
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/moment.js/moment.min.js"></script>
+<script type="text/javascript">
+    //var procs = @Html.Raw(Json.Serialize(Model.Processos));
+
+    //document.getElementById("selectArea").addEventListener("change", function () {
+    //    var areaId = this.value;
+
+    //    console.log("id area: ", areaId);
+
+    //    console.log("procs: ", procs);
+
+    //    var processosFiltrados = procs.filter(function (processo) {
+    //        return processo.idArea == areaId;
+    //    });
+
+    //    console.log("idArea filter: ", processosFiltrados);
+
+    //    var selectProcesso = document.getElementById("selectProcesso");
+    //    selectProcesso.innerHTML = "";
+
+    //    var optionDefault = document.createElement("option");
+    //    optionDefault.value = "-1";
+    //    optionDefault.text = "Selecione um processo";
+
+    //    processosFiltrados.forEach(function (processo) {
+    //        selectProcesso.appendChild(optionDefault);
+    //        var option = document.createElement("option");
+    //        option.value = processo.id;
+    //        option.text = processo.nome;
+    //        selectProcesso.appendChild(option);
+    //    });
+    //});
+
+    $(document).ready(function () {
+        $('#selectArea').on('change', function () {
+            var areaId = $(this).val();
+
+            $.ajax({
+                url: '/Projetos/Atividades/LoadSelectProcessos',
+                type: 'GET',
+                data: { idArea: areaId },
+                success: function (data) {
+                    var processosSelect = $('#selectProcesso');
+                    processosSelect.empty();
+                    processosSelect.append($('<option></option>').val(' ').text('Selecione um processo'));
+                    $.each(data, function (index, processo) {
+                        processosSelect.append($('<option></option>').val(processo.id).text(processo.nome));
+                    });
+                },
+                error: function (xhr, status, error) {
+                    console.log('Ocorreu um erro na requisição: ' + error);
+                }
+            });
+        });
+    });
+</script>
+<script type="text/javascript">
+    //$(document).ready(function () {
+    //    $('#btnIniciar').on('click', function () {
+    //        var idEmpresa = $('#selectEmpresa').val();
+    //        var idArea = $('#selectArea').val();
+    //        var idProcesso = $('#selectProcesso').val();
+    //        var status = 'INICIO';
+    //        var dataInicio = moment().format('DD/MM/YYYY HH:mm:ss');
+
+    //        var LogProcesso = {
+    //            IdUsuario: 1,
+    //            IdEmpresa: idEmpresa,
+    //            IdProcesso: idProcesso,
+    //            Status: status,
+    //            DataInicio: dataInicio,
+    //            DataFim: null,
+    //            DataCad: dataInicio
+    //        };
+
+    //        $.ajax({
+    //            url: '/Projetos/Atividades/AddLogProcesso',
+    //            type: 'POST',
+    //            data: {
+    //                IdUsuario: 1,
+    //                IdEmpresa: idEmpresa,
+    //                IdProcesso: idProcesso,
+    //                Status: status,
+    //                DataInicio: dataInicio,
+    //                DataFim: null,
+    //                DataCad: dataInicio
+    //            },
+    //            success: function (data) {
+    //                if (data.success) {
+    //                    var mensagem = $('<div id="alertStatus" class="alert alert-success alert-dismissible fade show" role="alert"> <strong> Processo iniciado! </strong> Seu processo foi iniciado com sucesso.<button type = "button" class= "btn-close" data - bs - dismiss="alert" aria - label="Close"> </button> </div>');
+    //                    $('#alertContainer').append(mensagem);
+    //                    $('#iniciarProcessoModal').modal('hide');
+
+    //                    setTimeout(function () {
+    //                        mensagem.remove();
+    //                    }, 5000);
+    //                } else if (data.error) {
+    //                    var mensagem = $('<div id="alertStatus" class="alert alert-danger alert-dismissible fade show" role="alert"> <strong> Erro! </strong> Processo nao foi iniciado! Verifique se inseriu todos os dados necessarios para iniciar o processo. <button type = "button" class= "btn-close" data - bs - dismiss="alert" aria - label="Close"> </button> </div>');
+    //                    $('#alertContainer').append(mensagem);
+    //                    $('#iniciarProcessoModal').modal('hide');
+
+    //                    setTimeout(function () {
+    //                        mensagem.remove();
+    //                    }, 5000);
+    //                }
+    //                console.log(data);
+    //            },
+    //            error: function (xhr, status, error) {
+    //                console.log('Ocorreu um erro na requisição: ' + error);
+    //            }
+    //        });
+
+    //    });
+    //});
+</script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        var selectEmpresa = $('#selectEmpresa');
+        var selectArea = $('#selectArea');
+        var selectProcesso = $('#selectProcesso');
+        var empresas = @Html.Raw(Json.Serialize(Model.Empresas));
+        var areas = @Html.Raw(Json.Serialize(Model.Areas));
+        var processos = @Html.Raw(Json.Serialize(Model.Processos));
+        var DataCadastro = moment().format('DD/MM/YYYY HH:mm:ss');
+        var Usuario = @Html.Raw(Json.Serialize(Model.Usuario));
+
+
+
+        $('#btnAddprocesso').on('click', function () {
+            if (selectEmpresa.val() != null && selectArea.val() != null && selectProcesso.val() != null) {
+                var empresaSelecionada = empresas.find(function (empresa) {
+                    return empresa.id == selectEmpresa.val();
+                });
+                var areaSelecionada = areas.find(function (area) {
+                    return area.id == selectArea.val();
+                });
+                var processoSelecionado = processos.find(function (processo) {
+                    return processo.id == selectProcesso.val();
+                });
+                if ($.VerificarDadosDuplicados(empresaSelecionada, areaSelecionada, processoSelecionado)) {
+                    $('#modalItensDuplicados').modal('show');
+                } else {
+                    $.ajax({
+                        url: '/Projetos/Projetos/Atividades/AddProcessoUsuario',
+                        type: 'POST',
+                        data: {
+                            IdUsuario: Usuario.id,
+                            IdEmpresa: empresaSelecionada.id,
+                            IdProcesso: processoSelecionado.id,
+                            Status: 'NAO INICIADO',
+                            DataInicio: null,
+                            DataFim: null,
+                            DataCadastro: DataCadastro,
+                            AtvItv: 0,
+                            TempoDecorrido: null
+                        },
+                        success: function (data) {
+                            if (data.success) {
+                                var mensagem = $('<div id="alertStatus" class="alert alert-success alert-dismissible fade show" role="alert"> <strong> Processo adicionado! </strong> Seu processo foi adicionado a lista de trabalho.<button type = "button" class= "btn-close" data - bs - dismiss="alert" aria - label="Close"> </button> </div>');
+                                $('#alertContainer').append(mensagem);
+                                $('#iniciarProcessoModal').modal('hide');
+                                console.log("processo id: " + data.processo.id);
+
+                                $.AdicionarLinhaTabela(data.processo.id, empresaSelecionada, areaSelecionada, processoSelecionado);
+
+                                selectEmpresa.find('option:first').prop('selected', true);
+                                selectArea.find('option:first').prop('selected', true);
+                                selectProcesso.find('option:first').prop('selected', true);
+
+                                setTimeout(function () {
+                                    mensagem.remove();
+                                }, 5000);
+                            } else if (data.error) {
+                                var mensagem = $('<div id="alertStatus" class="alert alert-danger alert-dismissible fade show" role="alert"> <strong> Erro! </strong> Processo nao foi adicionado! Verifique se inseriu todos os dados necessarios para adicionar o processo. <button type = "button" class= "btn-close" data - bs - dismiss="alert" aria - label="Close"> </button> </div>');
+                                $('#alertContainer').append(mensagem);
+                                $('#iniciarProcessoModal').modal('hide');
+
+                                setTimeout(function () {
+                                    mensagem.remove();
+                                }, 5000);
+                            }
+
+                        },
+                        error: function (xhr, status, error) {
+                            console.log('Ocorreu um erro na requisição: ' + error);
+                        }
+                    });
+                }
+
+            }
+
+        });
+
+        $.AdicionarLinhaTabela = function (idLinha, empresaSelecionada, areaSelecionada, processoSelecionado) {
+            var novaLinha = '<tr class="bg-secondary bg-opacity-10 naoiniciado" data-row=' + idLinha + ' id=' + idLinha + '><th data-row=' + idLinha + '><i id="btnTrash" class="bi bi-trash3 enabled"></i></th><th data-row=' + idLinha + ' class="numero-linha" scope="row"></th><td data-row='+idLinha+' class="idAtividade">'+idLinha+'</td><td data-row =' + idLinha + ' class="empresa" id=' + empresaSelecionada.id + '>' + empresaSelecionada.cidade + ' - ' + empresaSelecionada.nome + '</td><td data-row =' + idLinha + ' class="area" id=' + areaSelecionada.id + '>' + areaSelecionada.nome + '</td><td data-row =' + idLinha + ' class="processo" id=' + processoSelecionado.id + '>' + processoSelecionado.nome + '</td><td data-row =' + idLinha + ' class="status">' + 'NAO INICIADO' + '</td><td data-row =' + idLinha + ' class="datainicial">' + '' /*+ '</td><td data-row =' + idLinha + ' class="datafinal">' + ''*/ + '</td><td data-row =' + idLinha + ' class="cronometro">' + '' + '</td><td data-row =' + idLinha + ' class = "acoes">' +
+                '<div class="col d-grid gap-2 d-md-flex justify-content-md-end">' +
+                '<div class="col">' +
+                '<button id="btnPlay" type="button" class="btn btn-secondary btn-sm">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" width = "20" height = "25" fill = "currentColor" class="bi bi-play-fill" viewBox = "0 0 16 16">' +
+                '<path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>' +
+                '</svg>' +
+                ' </button>' +
+                '</div>' +
+                '<div class="col">' +
+                '<button id="btnPause" type="button" class="btn btn-secondary btn-sm disabled">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" width = "20" height = "25" fill = "currentColor" class="bi bi-pause-fill" viewBox = "0 0 16 16">' +
+                '<path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z"/>' +
+                '</svg>' +
+                '</button>' +
+                '</div>' +
+                '<div class="col">' +
+                '<button id="btnStop" type="button" class="btn btn-secondary btn-sm disabled">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" width = "20" height = "25" fill = "currentColor" class="bi bi-stop-fill" viewBox = "0 0 16 16">' +
+                '<path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/>' +
+                '</svg>' +
+                '</button>' +
+                '</div>' +
+                '</div>' +
+                '</td></tr>';
+
+
+
+            $('#tableProcesso tbody').prepend(novaLinha);
+
+            $('#tableProcesso tbody tr').each(function (index) {
+                $(this).find('.numero-linha').text(index + 1);
+            });
+        };
+
+        $.VerificarDadosDuplicados = function (empresaSelecionada, areaSelecionada, processoSelecionado) {
+
+            var duplicado = false;
+
+            $('#tableProcesso tbody tr').each(function () {
+                var linha = $(this);
+                var idEmpresa = linha.find('.empresa').attr('id');
+                var idArea = linha.find('.area').attr('id');
+                var idProcesso = linha.find('.processo').attr('id');
+
+                if (idEmpresa == empresaSelecionada.id && idArea == areaSelecionada.id && idProcesso == processoSelecionado.id) {
+                    duplicado = true;
+                    return false;
+                }
+            });
+
+            return duplicado;
+        }
+    });
+</script>
+
+@*BOTAO INICIO PROCESSO*@
+<script type="text/javascript">
+
+    $(document).ready(function () {
+        var idProcessoUsuario = 0;
+        var idProcessoUsuarioIniciado;
+        var processoAtualizado;
+
+        var intervalId;
+        var tempoDecorridoElement;
+        var tempoDecorridoElementPausado;
+        var datainicio;
+        var datapausa;
+
+        var requisicaoCompleta = false;
+
+
+        $('#tableProcesso').on('click', '#btnPlay', async function () {
+            var tr = $(this).closest('tr');
+            idProcessoUsuario = $(this).closest('tr').attr('id');
+            idProcessoUsuarioIniciado = BuscarIdProcessoIniciado(); /*$('#tableProcesso tr.iniciado td').attr('data-row');*/
+            var btnPlay = $('td.acoes[data-row = "' + idProcessoUsuario + '"] #btnPlay').attr('data-bs-target');
+
+            if (idProcessoUsuarioIniciado != null) {
+                if (idProcessoUsuarioIniciado == idProcessoUsuario) {
+                    $('#modalProcessoIniciado').modal('show');
+                } else {
+                    var processo = await ConsultarProcessoUsuario(idProcessoUsuarioIniciado);
+
+                    var empresaNome = $('#tableProcesso td.empresa[data-row = "' + processo.id + '"]').text();
+                    var areaNome = $('#tableProcesso td.area[data-row = "' + processo.id + '"]').text();
+                    var processoNome = $('#tableProcesso td.processo[data-row = "' + processo.id + '"]').text();
+                    var status = $('#tableProcesso td.status[data-row = "' + processo.id + '"]').text();
+                    var dtInicio = moment(new Date(processo.dataInicial)).format('DD/MM/YYYY');
+                    var dtFim = moment().format('DD/MM/YYYY');
+                    var tempoDecorrido = $('#tableProcesso td.cronometro[data-row = "' + processo.id + '"]').text();
+
+                    $('#modalIniciaPausaProcesso #tableModalIniciaPausaProcesso th.empresa').text(empresaNome);
+                    $('#modalIniciaPausaProcesso #tableModalIniciaPausaProcesso td.area').text(areaNome);
+                    $('#modalIniciaPausaProcesso #tableModalIniciaPausaProcesso td.processo').text(processoNome);
+                    $('#modalIniciaPausaProcesso #tableModalIniciaPausaProcesso td.status').text(status);
+                    $('#modalIniciaPausaProcesso #tableModalIniciaPausaProcesso td.dtinicio').text(dtInicio);
+                    $('#modalIniciaPausaProcesso #tableModalIniciaPausaProcesso td.dtfim').text(dtFim);
+                    $('#modalIniciaPausaProcesso #tableModalIniciaPausaProcesso td.tempodecorrido').text(tempoDecorrido);
+
+                    $('#modalIniciaPausaProcesso').modal('show');
+
+                }
+            } else {
+                var processo = await ConsultarProcessoUsuario(idProcessoUsuario);
+
+                if (processo.status == 'PAUSA') {
+                    $('#modalIniciaProcesso small p.row-text').text('Deseja retomar a ');
+                    $('#modalIniciaProcesso small p.row-text').append('<mark class="bg-primary bg-opacity-10 fw-bold">ATIVIDADE ?</mark>');
+                    $('#modalIniciaProcesso').modal('show');
+                    console.log('processo pausa id: ', processo.id);
+                } else {
+                    $('#modalIniciaProcesso small p.row-text').text('Deseja iniciar uma ');
+                    $('#modalIniciaProcesso small p.row-text').append('<mark class="bg-primary bg-opacity-10 fw-bold">NOVA ATIVIDADE ?</mark>');
+                    $('#modalIniciaProcesso').modal('show');
+                    console.log('processo id: ', processo.id);
+                }
+            }
+
+        });
+
+        $('#modalIniciaProcesso').off('click').on('click', '#btnIniciar', async function () {
+            if(requisicaoCompleta){
+                return;
+            }
+
+            requisicaoCompleta = true;
+
+            $('#modalIniciaProcesso #btnIniciar').addClass('disabled');
+            var processo = await ConsultarProcessoUsuario(idProcessoUsuario);
+            if (processo != null) {
+                if (processo.dataInicial == null) {
+                    processo.dataInicial = moment().format('DD/MM/YYYY HH:mm:ss');
+                }
+                
+                //processo.dataMovimento = moment().format('DD/MM/YYYY HH:mm:ss');
+                processo.status = 'INICIO';
+                processo.dataInicioCronometro = RetormarCronometro(processo);
+                console.log('Data Inicio Cronometro botao iniciar: ', processo.dataInicioCronometro);
+                processoAtualizado = await AtualizarProcessoUsuario(processo);
+                await $.AtualizarTabela(processoAtualizado);
+                await AdicionarLogProcesso(processoAtualizado);
+                $('#modalIniciaProcesso').modal('hide');
+
+            }
+            $('#modalIniciaProcesso #btnIniciar').removeClass('disabled');
+        });
+
+        $('#modalIniciaPausaProcesso').on('click', '#btnIniciarPausar', async function () {
+            //PausarCronometro();
+            if(requisicaoCompleta){
+                return;
+            }
+
+            requisicaoCompleta = true;
+
+            $('#modalIniciaPausaProcesso #btnIniciarPausar').addClass('disabled');
+            var processoIniciado = await ConsultarProcessoUsuario(BuscarIdProcessoIniciado());
+            var processoNovo = await ConsultarProcessoUsuario(idProcessoUsuario);
+
+            processoIniciado.dataMovimento = moment().format('DD/MM/YYYY HH:mm:ss');
+            processoIniciado.status = 'PAUSA';
+            processoIniciado.tempoDecorrido = await RetornarTempoDecorridoFormatado(processoIniciado);
+
+            
+            console.log('processo iniciado: ', processoIniciado);
+
+            if (processoNovo.dataInicial == null) {
+                processoNovo.dataInicial = moment().format('DD/MM/YYYY HH:mm:ss');
+            }
+
+            //processoNovo.dataMovimento = moment().format('DD/MM/YYYY HH:mm:ss');
+            console.log('processo novo data inicial: ', processoNovo.dataInicial);
+            processoNovo.status = 'INICIO';
+            processoNovo.dataInicioCronometro = await RetormarCronometro(processoNovo);
+            
+
+            processoIniciadoAtualizado = await AtualizarProcessoUsuario(processoIniciado);
+
+            if (processoIniciadoAtualizado.status == 'PAUSA') {
+                await AdicionarLogProcesso(processoIniciadoAtualizado);
+                processoNovoAtualizado = await AtualizarProcessoUsuario(processoNovo);
+                await $.AtualizarTabela(processoIniciadoAtualizado);
+            }
+
+            if (processoNovoAtualizado.status == 'INICIO') {
+                await AdicionarLogProcesso(processoNovoAtualizado);                               
+                //processoNovoAtualizado.dataInicioCronometro = RetormarCronometro(processoNovoAtualizado)
+                await $.AtualizarTabela(processoNovoAtualizado);
+            }
+
+            $('#modalIniciaPausaProcesso').modal('hide');
+            $('#modalIniciaPausaProcesso #btnIniciarPausar').removeClass('disabled');
+        });
+
+        $('#tableProcesso').on('click', '#btnPause', async function () {
+            if(requisicaoCompleta){
+                return;
+            }
+
+            requisicaoCompleta = true;
+            
+
+            console.log('click botao pausa');
+            var id = $(this).closest('tr').attr('id');
+            console.log('id: ', $(this).closest('tr').attr('id'));
+
+            var processo = await ConsultarProcessoUsuario(id);
+
+            var idProcPausado = $('#timestamp').attr('idrow');
+
+            if (processo.status == 'INICIO') {
+                processo.dataMovimento = moment().format('DD/MM/YYYY HH:mm:ss');
+                processo.status = 'PAUSA';
+                console.log('cronometro formatado segundos:', RetornarTempoDecorridoFormatado(processo));
+                processo.tempoDecorrido = RetornarTempoDecorridoFormatado(processo);
+
+
+                var processoIniciadoPausado = await AtualizarProcessoUsuario(processo);
+                await AdicionarLogProcesso(processoIniciadoPausado);
+                $.AtualizarTabela(processoIniciadoPausado);
+
+                //$('#tableProcesso td[data-row="' + processo.id + '"] #btnPause').removeClass('disabled');
+                $('#tableProcesso td[data-row="' + processo.id + '"] #btnPause').addClass('btn-warning');
+            }
+
+            //if(processo.status == 'PAUSA' || processo.status == 'NAO INICIADO'){
+            //    $('#tableProcesso tr[data-row="'+processo.id+'"] td.acoes #btnPause').addClass('disabled');
+            //}
+
+        });
+
+        $('#tableProcesso').on('click', '#btnStop', async function () {
+
+            idProcessoUsuario = $(this).closest('tr').attr('id');
+            var processo = await ConsultarProcessoUsuario(idProcessoUsuario);
+
+            var empresaNome = $('#tableProcesso td.empresa[data-row = "' + processo.id + '"]').text();
+            var areaNome = $('#tableProcesso td.area[data-row = "' + processo.id + '"]').text();
+            var processoNome = $('#tableProcesso td.processo[data-row = "' + processo.id + '"]').text();
+            var status = $('#tableProcesso td.status[data-row = "' + processo.id + '"]').text();
+            var dtInicio = moment(new Date(processo.dataInicial)).format('DD/MM/YYYY');
+            var dtFim = moment().format('DD/MM/YYYY');
+            var tempoDecorrido = $('#tableProcesso td.cronometro[data-row = "' + processo.id + '"]').text();
+
+            $('#modalFinalizaProcesso #tableModalFinalizar th.empresa').text(empresaNome);
+            $('#modalFinalizaProcesso #tableModalFinalizar td.area').text(areaNome);
+            $('#modalFinalizaProcesso #tableModalFinalizar td.processo').text(processoNome);
+            $('#modalFinalizaProcesso #tableModalFinalizar td.status').text(status);
+            $('#modalFinalizaProcesso #tableModalFinalizar td.dtinicio').text(dtInicio);
+            $('#modalFinalizaProcesso #tableModalFinalizar td.dtfim').text(dtFim);
+            $('#modalFinalizaProcesso #tableModalFinalizar td.tempodecorrido').text(tempoDecorrido);
+
+            $('#tableProcesso td[data-row="' + processo.id + '"] #btnStop').addClass('btn-danger');
+
+            $('#modalFinalizaProcesso').modal('show');
+        });
+
+        $('#modalFinalizaProcesso').on('click', '#btnFinalizar', async function () {
+            if (requisicaoCompleta) {
+                return;
+            }
+
+            requisicaoCompleta = true;
+
+            $('#modalFinalizaProcesso #btnFinalizar').addClass('disabled');
+            var processo = await ConsultarProcessoUsuario(idProcessoUsuario);
+            var idProcIniciado = BuscarIdProcessoIniciado();
+            console.log('data movimento antes do if finalizar: ', processo.dataMovimento);
+
+            if (processo.id == idProcIniciado) {
+                processo.dataMovimento = moment().format('DD/MM/YYYY HH:mm:ss');
+                processo.tempoDecorrido = RetornarTempoDecorridoFormatado(processo);
+            } else {
+                processo.status = 'FIM';
+                processo.tempoDecorrido = RetornarTempoDecorridoFormatado(processo);
+            }
+
+            processo.status = 'FIM';
+            processo.dataFinal = moment().format('DD/MM/YYYY HH:mm:ss');
+            processo.atvItv = 1;
+            console.log('processo que vai ser atualizado: ', processo);
+            await AtualizarProcessoUsuario(processo);
+            await AdicionarLogProcesso(processo);
+            $.AtualizarTabela(processo);
+            console.log('id usuario: ', idProcessoUsuario);
+            var processoFinalizado = await ConsultarProcessoUsuarioFinalizado(idProcessoUsuario);
+            AdicionarLinhaTabelaHistorico(processoFinalizado);
+            $('#modalFinalizaProcesso #btnFinalizar').removeClass('disabled');
+            var mensagem = $('<div id="alertStatus" class="alert alert-success alert-dismissible fade show" role="alert"> <strong> Processo Finalizado! </strong> Seu processo saiu da lista de atividades!<button type = "button" class= "btn-close" data - bs - dismiss="alert" aria - label="Close"> </button> </div>');
+            $('#alertContainer').append(mensagem);
+            
+
+            setTimeout(function () {
+                mensagem.remove();
+                location.reload();
+            }, 1500);
+
+        });
+
+        $('#modalFinalizaProcesso').on('hidden.bs.modal', function () {
+            $('#tableProcesso #btnStop').removeClass('btn-danger');
+            $('#tableProcesso #btnStop').addClass('btn-secondary');
+        });
+
+        $('#tableProcesso').on('click', '#btnTrash', async function () {
+
+            idProcessoUsuario = $(this).closest('tr').attr('id');
+            var processo = await ConsultarProcessoUsuario(idProcessoUsuario);
+
+            var empresaNome = $('#tableProcesso td.empresa[data-row = "' + processo.id + '"]').text();
+            var areaNome = $('#tableProcesso td.area[data-row = "' + processo.id + '"]').text();
+            var processoNome = $('#tableProcesso td.processo[data-row = "' + processo.id + '"]').text();
+            var status = $('#tableProcesso td.status[data-row = "' + processo.id + '"]').text();
+            var dtInicio = moment(new Date(processo.dataInicial)).format('DD/MM/YYYY');
+            var dtFim = moment().format('DD/MM/YYYY');
+            var tempoDecorrido = $('#tableProcesso td.cronometro[data-row = "' + processo.id + '"]').text();
+
+            $('#modalExcluiProcesso #tableModalExcluir th.empresa').text(empresaNome);
+            $('#modalExcluiProcesso #tableModalExcluir td.area').text(areaNome);
+            $('#modalExcluiProcesso #tableModalExcluir td.processo').text(processoNome);
+            $('#modalExcluiProcesso #tableModalExcluir td.status').text(status);
+            $('#modalExcluiProcesso #tableModalExcluir td.dtinicio').text(dtInicio);
+            $('#modalExcluiProcesso #tableModalExcluir td.dtfim').text(dtFim);
+            $('#modalExcluiProcesso #tableModalExcluir td.tempodecorrido').text(tempoDecorrido);
+
+            $('#tableProcesso td[data-row="' + processo.id + '"] #btnTrash').addClass('btn-danger');
+
+            $('#modalExcluiProcesso').modal('show');
+        });
+
+        $('#modalExcluiProcesso').on('click', '#btnExcluir', async function () {
+            $('#modalExcluiProcesso #btnExcluir').addClass('disabled');
+            var processo = await ConsultarProcessoUsuario(idProcessoUsuario);
+
+            if (processo.status == 'NAO INICIADO') {
+
+                await DeletarProcessoUsuario(processo);
+                processo.status = "EXCLUIDO";
+                $.AtualizarTabela(processo);
+
+                var mensagem = $('<div id="alertStatus" class="alert alert-success alert-dismissible fade show" role="alert"> <strong> Processo Excluido! </strong> Seu processo saiu da lista de atividades!<button type = "button" class= "btn-close" data - bs - dismiss="alert" aria - label="Close"> </button> </div>');
+                $('#alertContainer').append(mensagem);
+            } else {
+                var mensagem = $('<div id="alertStatus" class="alert alert-danger alert-dismissible fade show" role="alert"> <strong>EERO: Processo nao foi excluido! </strong><button type = "button" class= "btn-close" data - bs - dismiss="alert" aria - label="Close"> </button> </div>');
+                $('#alertContainer').append(mensagem);
+            }
+            $('#modalExcluiProcesso #btnExcluir').removeClass('disabled');
+
+
+            setTimeout(function () {
+                mensagem.remove();
+                location.reload();
+            }, 1500);
+        });
+
+        $('#tableHistorico').on('click', '#btnReload', async function () {
+
+            idProcessoUsuario = $(this).closest('tr').attr('id');
+            var processo = await ConsultarProcessoUsuarioFinalizado(idProcessoUsuario);
+
+            var empresaNome = $('#tableHistorico td.empresa[data-row = "' + processo.id + '"]').text();
+            var areaNome = $('#tableHistorico td.area[data-row = "' + processo.id + '"]').text();
+            var processoNome = $('#tableHistorico td.processo[data-row = "' + processo.id + '"]').text();
+            var status = $('#tableHistorico td.status[data-row = "' + processo.id + '"]').text();
+            var dtInicio = moment(new Date(processo.dataInicial)).format('DD/MM/YYYY');
+            var dtFim = moment().format('DD/MM/YYYY');
+            var tempoDecorrido = $('#tableHistorico td.cronometro[data-row = "' + processo.id + '"]').text();
+
+            $('#modalReiniciarProcesso #tableModalReiniciar th.empresa').text(empresaNome);
+            $('#modalReiniciarProcesso #tableModalReiniciar td.area').text(areaNome);
+            $('#modalReiniciarProcesso #tableModalReiniciar td.processo').text(processoNome);
+            $('#modalReiniciarProcesso #tableModalReiniciar td.status').text(status);
+            $('#modalReiniciarProcesso #tableModalReiniciar td.dtinicio').text(dtInicio);
+            $('#modalReiniciarProcesso #tableModalReiniciar td.dtfim').text(dtFim);
+            $('#modalReiniciarProcesso #tableModalReiniciar td.tempodecorrido').text(tempoDecorrido);
+
+
+
+            $('#modalReiniciarProcesso').modal('show');
+        });
+
+        $('#modalReiniciarProcesso').on('click', '#btnReiniciar', async function () {
+            if (requisicaoCompleta) {
+                return;
+            }
+
+            requisicaoCompleta = true;
+
+            $('#modalReiniciarProcesso #btnReiniciar').addClass('disabled');
+            var processo = await ConsultarProcessoUsuario(idProcessoUsuario);
+            var logprocesso = await ConsultarUltimoLogProcesso(idProcessoUsuario);
+            console.log(logprocesso);
+
+            if (VerificarItensDuplicados(processo)) {
+                $('#modalItensDuplicados').modal('show');
+            } else {
+                if (processo.status == 'FIM') {
+
+                    processo.status = 'REINICIAR';
+                    processo.dataFinal = null;
+                    processo.atvItv = 0;
+
+                    logprocesso.status = 'PAUSA';
+                    logprocesso.dataFim = null;
+                    logprocesso.tempoDecorrido = null;
+                    //logprocesso.dataInicio = moment().format('DD/MM/YYYY HH:mm:ss');
+
+                    var processoReiniciado = await AtualizarProcessoUsuario(processo);
+
+                    if (processoReiniciado != null) {
+                        await AtualizarLogProcesso(logprocesso);
+                        AdicionarLinhaTabelaProcesso(processoReiniciado);
+                        $.AtualizarTabela(processoReiniciado);
+
+                        var mensagem = $('<div id="alertStatus" class="alert alert-success alert-dismissible fade show" role="alert"> <strong> Processo Reiniciado! </strong> Seu processo entrou na lista de atividades!<button type = "button" class= "btn-close" data - bs - dismiss="alert" aria - label="Close"> </button> </div>');
+                        $('#alertContainer').append(mensagem);
+
+                        setTimeout(function () {
+                            mensagem.remove();
+                            location.reload();
+                        }, 1500);
+
+                    }
+
+                } else {
+                    var mensagem = $('<div id="alertStatus" class="alert alert-danger alert-dismissible fade show" role="alert"> <strong>ERRO: Processo nao foi reiniciado! </strong><button type = "button" class= "btn-close" data - bs - dismiss="alert" aria - label="Close"> </button> </div>');
+                    $('#alertContainer').append(mensagem);
+                    setTimeout(function () {
+                        mensagem.remove();
+                        location.reload();
+                    }, 1500);
+                }
+            }
+
+            $('#modalReiniciarProcesso #btnReiniciar').removeClass('disabled');
+
+        });
+
+
+        function BuscarIdProcessoIniciado() {
+            id = $('#tableProcesso tr.iniciado td').attr('data-row');
+            return id;
+        };
+
+        function ConsultarProcessoUsuario(idProcesso) {
+            return new Promise(function (resolve, reject) {
+                $.ajax({
+                    url: '/Projetos/Atividades/GetProcessoUsuario',
+                    type: 'GET',
+                    data: {
+                        id: idProcesso
+                    },
+                    success: function (data) {
+                        resolve(data);
+                    },
+                    error: function (xhr, status, error) {
+                        console.log('Ocorreu um erro na requisição: ' + error);
+                        reject(error);
+                    }
+                });
+            });
+        };
+
+        function ConsultarProcessoUsuarioFinalizado(idProcesso) {
+            return new Promise(function (resolve, reject) {
+                $.ajax({
+                    url: '/Projetos/Atividades/GetProcessoUsuarioFinalizado',
+                    type: 'GET',
+                    data: {
+                        id: idProcesso
+                    },
+                    success: function (data) {
+                        resolve(data);
+                    },
+                    error: function (xhr, status, error) {
+                        console.log('Ocorreu um erro na requisição: ' + error);
+                        reject(error);
+                    }
+                });
+            });
+        };
+
+        function ConsultarUltimoLogProcesso(idProcesso) {
+            return new Promise(function (resolve, reject) {
+                $.ajax({
+                    url: '/Projetos/Atividades/GetLastLogProcesso',
+                    type: 'GET',
+                    data: {
+                        id: idProcesso
+                    },
+                    success: function (data) {
+                        console.log('log: ', data);
+                        resolve(data);
+                    },
+                    error: function (xhr, status, error) {
+                        console.log('Ocorreu um erro na requisição: ' + error);
+                        reject(error);
+                    }
+                });
+            });
+        };
+
+        function AtualizarProcessoUsuario(processo) {
+            console.log('atualizar processo chamou uma vez')
+            return new Promise(function (resolve, reject) {
+                $.ajax({
+                    url: '/Projetos/Atividades/UpdateProcessoUsuario',
+                    type: 'PUT',
+                    data: {
+                        ProcessoUsuario: processo
+                    },
+                    success: async function (data) {
+                        console.log(data);
+                        processoAtualizado = await ConsultarProcessoUsuario(processo.id);
+                        console.log('processo na atualizacao', processoAtualizado);
+                        //$.AtualizarTabela(processoAtualizado);
+                        resolve(processoAtualizado);
+                    },
+                    complete: function(){
+                        console.log('requisicao ajax: ', requisicaoCompleta);
+                        requisicaoCompleta = false;
+                        console.log('requisicao ajax: ', requisicaoCompleta);
+                    },
+                    error: function (xhr, status, error) {
+                        console.log('Ocorreu um erro na requisição: ' + error);
+                        reject(error);
+                    }
+                });
+            });
+        };
+
+        function AtualizarLogProcesso(logprocesso) {
+            return new Promise(function (resolve, reject) {
+                $.ajax({
+                    url: '/Projetos/Atividades/UpdateLogProcesso',
+                    type: 'PUT',
+                    data: {
+                        LogProcesso: logprocesso
+                    },
+                    success: function (data) {
+                        console.log(data);;
+                        resolve(data);
+                    },
+                    error: function (xhr, status, error) {
+                        console.log('Ocorreu um erro na requisição: ' + error);
+                        reject(error);
+                    }
+                });
+            });
+        };
+
+        function DeletarProcessoUsuario(processo) {
+            return new Promise(function (resolve, reject) {
+                $.ajax({
+                    url: '/Projetos/Atividades/DeleteProcessoUsuario',
+                    type: 'DELETE',
+                    data: {
+                        ProcessoUsuario: processo
+                    },
+                    success: async function (data) {
+                        console.log(data);
+                        resolve(data);
+                    },
+                    error: function (xhr, status, error) {
+                        console.log('Ocorreu um erro na requisição: ' + error);
+                        reject(error);
+                    }
+                });
+            });
+        };
+
+        function AdicionarLogProcesso(processo) {
+            $.ajax({
+                url: '/Projetos/Atividades/AddLogProcesso',
+                type: 'POST',
+                data: {
+                    ProcessoUsuario: processo
+                },
+                success: async function (data) {
+                    console.log(data);
+                },
+                error: function (xhr, status, error) {
+                    console.log('Ocorreu um erro na requisição de log: ' + error);
+                }
+            });
+        }
+
+        $.AtualizarTabela = function (processo) {
+
+            console.log('data pausa: ', moment(processo.dataMovimento).format('DD/MM/YYYY HH:mm:ss'));
+            $('td.datainicial[data-row = "' + processo.id + '"]').text(moment(processo.dataInicial).format('DD/MM/YYYY HH:mm:ss'));
+            $('td.status[data-row = "' + processo.id + '"]').text(processo.status);
+
+
+
+            if (processo.status == "INICIO") {
+                $("#tableProcesso tr#" + processo.id + "").removeClass('bg-warning bg-opacity-10 pausado');
+                $("#tableProcesso tr#" + processo.id + "").addClass('bg-success bg-opacity-10 iniciado');
+                $('#tableProcesso td[data-row="' + processo.id + '"] #btnPlay').addClass('btn-success');
+                $('#tableProcesso td[data-row="' + processo.id + '"] #btnPlay').attr('data-bs-target', '#modalProcessoIniciado');
+                $('#tableProcesso td[data-row="' + processo.id + '"] #btnPause').removeClass('disabled');
+                $('#tableProcesso td[data-row="' + processo.id + '"] #btnPause').removeClass('btn-warning');
+                $('#tableProcesso td[data-row="' + processo.id + '"] #btnPause').addClass('btn-secondary');
+                $('#tableProcesso td[data-row="' + processo.id + '"] #btnStop').removeClass('disabled');
+                $('#tableProcesso tr[data-row="' + processo.id + '"] #btnTrash ').removeClass('enabled');
+                $('#tableProcesso tr[data-row="' + processo.id + '"] #btnTrash ').addClass('disabled');
+                console.log('id processo iniciado: ', processo.id);
+                //RetormarCronometro(processo);
+
+                intervalId = setInterval(AtualizarTempoDecorrido, 1000);
+
+            } else if (processo.status == "FIM" || processo.status == "EXCLUIDO") {
+
+                $("#tableProcesso tr#" + processo.id + "").remove();
+                $('#tableProcesso tbody tr').each(function (index) {
+                    $(this).find('.numero-linha').text(index + 1);
+                });
+
+            } else {
+                $("#tableProcesso tr#" + processo.id + "").removeClass('bg-success bg-opacity-10 iniciado');
+                $("#tableProcesso tr#" + processo.id + "").addClass('bg-warning bg-opacity-10 pausado');
+                $('#tableProcesso td[data-row="' + processo.id + '"] #btnPlay').addClass('btn-secondary');
+                $('#tableProcesso td[data-row="' + processo.id + '"] #btnPause').addClass('disabled');
+                $('#tableProcesso td[data-row="' + processo.id + '"] #btnPause').addClass('btn-warning');
+                $('#tableProcesso td[data-row="' + processo.id + '"] #btnPlay').removeClass('btn-success');
+                $('#tableProcesso td[data-row="' + processo.id + '"] #btnPlay').attr('data-bs-target', '#modalIniciaProcesso');
+                $('#tableProcesso td[data-row="' + processo.id + '"] #btnStop').removeClass('disabled');
+                $("#tableHistorico tr#" + processo.id + "").remove();
+                if ($("#tableHistorico tbody tr").length == 0) {
+                    $('#tableHistorico').addClass('visually-hidden');
+                    $('#textTableHistorico').addClass('visually-hidden');
+                }
+                //$('#tableProcesso td[data-row="' + processo.id + '"] #btnPause').addClass('disabled');
+                $('#tableProcesso tr[data-row="' + processo.id + '"] #btnTrash').addClass('disabled');
+                $('#tableProcesso tr[data-row="' + processo.id + '"] #btnTrash').removeClass('enabled');
+                clearInterval(intervalId);
+                PausarCronometro(processo);
+                var idProcPausado = $('#timestamp').attr('idrow');
+                console.log('id processo pausado: ', idProcPausado);
+            };
+
+
+        };
+
+
+        IniciarCronometro(null);
+        FormatarTempoHistorico();
+
+        function IniciarCronometro() {
+            var proc;
+            var processos = @Html.Raw(Json.Serialize(Model.ProcessosUsuarios));
+            proc = processos.find(function (proc) {
+                return proc.status == 'INICIO';
+            });
+
+            var processosFiltrados = processos.filter(function (proc) {
+                return proc.status == 'INICIO' || proc.status == 'PAUSA';
+            });
+
+            for (var indice in processosFiltrados) {
+                if (processosFiltrados.hasOwnProperty(indice)) {
+                    var proc = processosFiltrados[indice];
+
+                    if (proc.status == 'INICIO') {
+                        tempoDecorridoElement = $('td.cronometro[data-row="' + proc.id + '"]');
+
+                        if (proc.dataInicioCronometro != null) {
+                            datainicio = new Date(proc.dataInicioCronometro);
+                        } else {
+                            datainicio = new Date(proc.dataInicial);
+                        }
+                        intervalId = setInterval(AtualizarTempoDecorrido, 1000);
+
+                    } else {
+
+                        var datainicioPausa;
+                        if (proc.dataInicioCronometro != null) {
+                            datainicioPausa = new Date(proc.dataInicioCronometro);
+                        } else {
+                            datainicioPausa = new Date(proc.dataInicial);
+                        }
+                        var dataMovimento = new Date(proc.dataMovimento);
+                        var tempoPausado = dataMovimento.getTime() - datainicioPausa.getTime();
+                        var hours = Math.floor(tempoPausado / (1000 * 60 * 60));
+                        var minutes = Math.floor((tempoPausado % (1000 * 60 * 60)) / (1000 * 60));
+                        var seconds = Math.floor((tempoPausado % (1000 * 60)) / 1000);
+                        tempoDecorridoElementPausado = $('td.cronometro[data-row="' + proc.id + '"]');
+                        tempoDecorridoElementPausado.text(FormatarTempo(hours, minutes, seconds));
+                        //AtualizarTempoDecorridoPausados(proc);
+                        console.log('proc pausa: ', proc);
+                        console.log('data inicio: ', moment(datainicioPausa).format('DD/MM/YYYY HH:mm:ss'));
+                        console.log('data movimento: ', moment(dataMovimento).format('DD/MM/YYYY HH:mm:ss'));
+                    }
+
+                }
+            }
+
+        }
+
+        function RetornarTempoDecorridoFormatado(processoIniciado) {
+            if (processoIniciado.dataInicioCronometro != null) {
+                dataInicioCronometro = new Date(processoIniciado.dataInicioCronometro);
+            } else {
+                dataInicioCronometro = new Date();
+            }
+            var tempoDecorrido;
+            console.log('dataMovimento antes retornar: ', processoIniciado.dataMovimento);
+            if (processoIniciado.status != 'FIM') {
+                console.log('entrou no primeiro if retornar')
+                dataMovimento = new Date();
+                tempoDecorrido = dataMovimento.getTime() - dataInicioCronometro.getTime();
+            } else {
+                var dtMov = new Date(processoIniciado.dataMovimento);
+                console.log('dtmov: ', dtMov);
+                tempoDecorrido = dtMov.getTime() - dataInicioCronometro.getTime();
+            }
+
+            console.log('dataMovimento retornar: ', processoIniciado.dataMovimento);
+            console.log('dataInicioCronometro retornar: ', dataInicioCronometro);
+            console.log('tempo decorrrido depois calculo retornar: ', tempoDecorrido);
+
+            var hours = Math.floor(tempoDecorrido / (1000 * 60 * 60));
+            var minutes = Math.floor((tempoDecorrido % (1000 * 60 * 60)) / (1000 * 60));
+            var seconds = Math.floor((tempoDecorrido % (1000 * 60)) / 1000);
+            console.log('tempo formatado: ', FormatarTempo(hours, minutes, seconds));
+            console.log('tempo formatado apenas o segundos: ', RemoverDiasDoCronometro(FormatarTempo(hours, minutes, seconds)));
+            return RemoverDiasDoCronometro(FormatarTempo(hours, minutes, seconds));
+        }
+
+
+        function AtualizarTempoDecorrido() {
+            var currentTime = new Date().getTime();
+            var elapsedTime = currentTime - datainicio.getTime();
+            var hours = Math.floor(elapsedTime / (1000 * 60 * 60));
+            var minutes = Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60));
+            var seconds = Math.floor((elapsedTime % (1000 * 60)) / 1000);
+            tempoDecorridoElement.text(FormatarTempo(hours, minutes, seconds));
+        }
+
+        function AtualizarTempoDecorridoPausados(processo) {
+            var currentTime = new Date().getTime();
+            var elapsedTime = currentTime - datainicio.getTime();
+            var hours = Math.floor(elapsedTime / (1000 * 60 * 60));
+            var minutes = Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60));
+            var seconds = Math.floor((elapsedTime % (1000 * 60)) / 1000);
+            tempoDecorridoElementPausado = $('td.cronometro[data-row="' + processo.id + '"]');
+            tempoDecorridoElementPausado.text(FormatarTempo(hours, minutes, seconds));
+        }
+
+        function PausarCronometro(processo) {
+            clearInterval(intervalId);
+            datapausa = new Date();
+            $('#timestamp').val(datapausa);
+            $('#timestamp').attr('idRow', processo.id);
+        }
+
+        
+
+        function RetormarCronometro(processo) {
+            console.log('processo retomar', processo);
+            var datagora = new Date().getTime();
+            console.log('retormar: data agora: ', moment(datagora).format('DD/MM/YYYY HH:mm:ss'));
+            console.log('retomar: data pausa: ', moment(processo.dataMovimento).format('DD/MM/YYYY HH:mm:ss'));
+            var procdataInicial;
+            console.log('processo data inicio cronometro: ',processo.dataInicioCronometro);
+            if (processo.dataInicioCronometro != null) {
+                console.log('entrou no if data inicial: ', new Date(processo.dataInicioCronometro));
+                procdataInicial = new Date(processo.dataInicioCronometro);
+                console.log('procdatainicial if: ', procdataInicial);
+            } else {
+                console.log('entrou no else data inicial: ', processo .dataInicial.replace('T', ' '));
+                processo.dataInicial = processo.dataInicial.replace('T', ' ');
+                procdataInicial = new Date(convertDateStringToJSFormat(processo.dataInicial));
+                console.log('procdatainicial if: ', procdataInicial);
+            }
+
+            console.log('procdatainicial: ',procdataInicial);
+            var procdataInicial = new Date(processo.dataInicioCronometro);
+            var tempodecorrido = datagora - new Date(processo.dataMovimento).getTime();
+            console.log('data agora get time: ',datagora);
+            console.log('DataMovimento GetTime: ',new Date(processo.dataMovimento).getTime());
+            console.log('tempo decorrido: ', tempodecorrido);
+            var novoTempoDecorrido = /*datainicio.getTime()*/ procdataInicial.getTime() + tempodecorrido;
+            console.log('Novo tempo decorrido: ',novoTempoDecorrido);
+            //if(novoTempoDecorrido == 0){
+            //    novoTempoDecorrido = 1;
+            //    console.log('Novo tempo decorrido depois: ',novoTempoDecorrido);
+
+            //}
+            console.log('data inicio original: ', datainicio);
+            datainicio = new Date(novoTempoDecorrido);
+            tempoDecorridoElement = $('td.cronometro[data-row="' + processo.id + '"]');
+            console.log('nova data inicio: ', moment(datainicio).format('DD/MM/YYYY HH:mm:ss'));
+            var current = new Date().getTime();
+
+            var elapsedTime = current - novoTempoDecorrido;
+
+            var hours = Math.floor(elapsedTime / (1000 * 60 * 60));
+            var minutes = Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60));
+            var seconds = Math.floor((elapsedTime % (1000 * 60)) / 1000);
+
+            var horafinal = FormatarTempo(hours, minutes, seconds);
+
+            console.log('data hora final: ', horafinal);
+
+            processo.dataInicioCronometro = moment(datainicio).format('DD/MM/YYYY HH:mm:ss');
+            
+            //await AtualizarProcessoUsuario(processo);
+
+
+
+            //intervalId = setInterval(AtualizarTempoDecorrido, 1000);
+            return processo.dataInicioCronometro;
+        }
+
+        //function FormatarTempo(hours, minutes, seconds) {
+        //    return (
+        //        (hours < 10 ? '0' + hours : hours) +
+        //        ':' +
+        //        (minutes < 10 ? '0' + minutes : minutes) +
+        //        ':' +
+        //        (seconds < 10 ? '0' + seconds : seconds)
+        //    );
+        //}
+
+        function convertDateStringToJSFormat(dateString) {
+            var parts = dateString.split(" ");
+            var dateParts = parts[0].split("/");
+            var timeParts = parts[1].split(":");    
+             return new Date(dateParts[2], dateParts[1] - 1, dateParts[0], timeParts[0], timeParts[1], timeParts[2]);
+        }
+
+        function FormatarTempo(hours, minutes, seconds) {
+            var dias = Math.floor(hours / 24);
+            var horasRestantes = hours % 24;
+
+            return (dias > 0 ? dias + 'D:' : '') +
+                (horasRestantes < 10 ? '0' + horasRestantes : horasRestantes) + "H:" +
+                (minutes < 10 ? '0' + minutes : minutes) + "M:" +
+                (seconds < 10 ? '0' + seconds : seconds) + "S";
+        }
+
+        function FormatarTempoPorSegundos(totalSegundos) {
+            var dias = Math.floor(totalSegundos / (24 * 3600));
+            totalSegundos %= 24 * 3600;
+
+            var horas = Math.floor(totalSegundos / 3600);
+            totalSegundos %= 3600;
+
+            var minutos = Math.floor(totalSegundos / 60);
+            var segundos = totalSegundos % 60;
+
+            return (dias > 0 ? dias + 'D:' : '') +
+                (horas < 10 ? '0' + horas : horas) + "H:" +
+                (minutos < 10 ? '0' + minutos : minutos) + "M:" +
+                (segundos < 10 ? '0' + segundos : segundos) + "S";
+        }
+
+        function FormatarTempoHistorico() {
+            var TempoDecorridoElement;
+            var proc;
+            var processos = @Html.Raw(Json.Serialize(Model.ProcessosUsuariosHistorico));
+            proc = processos.find(function (proc) {
+                return proc.status == 'FIM';
+            });
+
+            var processosFiltrados = processos.filter(function (proc) {
+                return proc.status == 'FIM';
+            });
+
+            for (var indice in processosFiltrados) {
+                if (processosFiltrados.hasOwnProperty(indice)) {
+                    var proc = processosFiltrados[indice];
+
+                    if (proc.status == 'FIM') {
+                        TempoDecorridoElement = $('#tableHistorico td.cronometro[data-row="' + proc.id + '"]');
+
+                        var datainicioPausa = new Date(proc.dataInicioCronometro);
+                        var dataMovimento = new Date(proc.dataMovimento);
+                        var tempoPausado = dataMovimento.getTime() - datainicioPausa.getTime();
+                        var hours = Math.floor(tempoPausado / (1000 * 60 * 60));
+                        var minutes = Math.floor((tempoPausado % (1000 * 60 * 60)) / (1000 * 60));
+                        var seconds = Math.floor((tempoPausado % (1000 * 60)) / 1000);
+                        TempoDecorridoElement.text(FormatarTempo(hours, minutes, seconds));
+
+                    }
+
+                }
+            }
+        }
+
+        //function RemoverDiasDoCronometro(cronometroFormatado) {
+        //    var diasIndex = cronometroFormatado.indexOf('D:');
+        //    if (diasIndex !== -1) {
+        //        var dias = parseInt(cronometroFormatado.substring(0, diasIndex));
+        //        var tempoSemDias = cronometroFormatado.substring(diasIndex + 2); // +2 para pular o "D:" na string
+
+        //        var partes = tempoSemDias.split(':');
+        //        var horas = parseInt(partes[0]);
+        //        var minutos = parseInt(partes[1]);
+        //        var segundos = parseInt(partes[2]);
+
+        //        horas += dias * 24;
+        //        minutos += Math.floor(segundos / 60);
+        //        segundos %= 60;
+        //        horas += Math.floor(minutos / 60);
+        //        minutos %= 60;
+
+        //        return ("00" + horas).slice(-2) + ":" +
+        //            ("00" + minutos).slice(-2) + ":" +
+        //            ("00" + segundos).slice(-2);
+        //    } else {
+        //        return cronometroFormatado.replace(/[DHMS]/g, '');
+        //    }
+        //}
+
+        function RemoverDiasDoCronometro(cronometroFormatado) {
+            // Extrai os componentes de dias, horas, minutos e segundos do cronometroFormatado
+            var diasIndex = cronometroFormatado.indexOf('D:');
+            var dias;
+            var tempoSemDias;
+            if (diasIndex == -1) {
+                tempoSemDias = cronometroFormatado;
+                dias = 0;
+            } else {
+                dias = parseInt(cronometroFormatado.substring(0, diasIndex));
+                tempoSemDias = cronometroFormatado.substring(diasIndex + 2);
+            }
+
+            var partes = tempoSemDias.split(':');
+            var horas = parseInt(partes[0]);
+            var minutos = parseInt(partes[1]);
+            var segundos = parseInt(partes[2]);
+
+            let totalSegundos = dias * 24 * 60 * 60 + horas * 60 * 60 + minutos * 60 + segundos;
+            return totalSegundos;
+        }
+
+        function AdicionarLinhaTabelaHistorico(processoFinalizado) {
+            console.log('tempo decorrido: ', processoFinalizado.tempoDecorrido);
+            var idLinha = processoFinalizado.id;
+            var empresaModel = @Html.Raw(Json.Serialize(Model.Empresas));
+            var areaModel = @Html.Raw(Json.Serialize(Model.Areas));
+            var processoModel = @Html.Raw(Json.Serialize(Model.Processos));
+            var tempoDecorrido = FormatarTempoPorSegundos(processoFinalizado.tempoDecorrido);
+            var dtInicio = moment(new Date(processoFinalizado.dataInicial)).format('DD/MM/YYYY HH:mm:ss');
+
+            var empresaSelecionada = empresaModel.find(function (empresa) {
+                return empresa.id == processoFinalizado.idEmpresa;
+            });
+
+            var processoSelecionado = processoModel.find(function (processo) {
+                return processo.id == processoFinalizado.idProcesso;
+            });
+
+            var areaSelecionada = areaModel.find(function (area) {
+                return area.id == processoSelecionado.idArea;
+            });
+
+
+            console.log('empresa selecionada: ', empresaSelecionada);
+            console.log('area selecionada: ', areaSelecionada);
+            console.log('processo selecionada: ', processoSelecionado);
+
+            var novaLinha = '<tr class="bg-primary bg-opacity-10 reiniciado" data-row=' + idLinha + ' id=' + idLinha + '><th data-row=' + idLinha + '><i id="btnCheck" class="bi bi-check2 enabled"></i></th><th data-row=' + idLinha + ' class="numero-linha" scope="row"></th><td data-row='+idLinha+' class="idAtividade">'+idLinha+'</td><td data-row =' + idLinha + ' class="empresa" id=' + empresaSelecionada.id + '>'+ empresaSelecionada.cidade+ ' - ' + empresaSelecionada.nome + '</td><td data-row =' + idLinha + ' class="area" id=' + areaSelecionada.id + '>' + areaSelecionada.nome + '</td><td data-row =' + idLinha + ' class="processo" id=' + processoSelecionado.id + '>' + processoSelecionado.nome + '</td><td data-row =' + idLinha + ' class="status">' + processoFinalizado.status + '</td><td data-row =' + idLinha + ' class="datainicial">' + dtInicio + '</td><td data-row =' + idLinha + ' class="cronometro">' + tempoDecorrido + '</td><td data-row =' + idLinha + ' class = "acoes ps-5 pe-5">' +
+                '<div class="col">' +
+                '<button id="btnReload" type="button" class="btn btn-md btn-primary">' +
+                '<i class="bi bi-arrow-clockwise">' +
+                '</i>' +
+                '</button>' +
+                '</div>' +
+                '</td></tr>';
+
+
+
+            //var linhaExistente = $('#tableHistorico tbody tr').filter(function () {
+            //    return $(this).find("td:eq(1)").text() === empresaSelecionada.nome &&
+            //        $(this).find("td:eq(3)").text() === processoSelecionado.nome;
+            //});
+
+            //if (linhaExistente.length > 0) {
+            //    // Se uma linha existente for encontrada, substitua-a pela nova linha
+            //    linhaExistente.replaceWith(novaLinha);
+            //} else {
+            //    // Se nenhuma linha existente for encontrada, simplesmente adicione a nova linha à tabela
+            //    $('#tableHistorico tbody').prepend(novaLinha);
+            //}
+
+            $('#tableHistorico tbody').prepend(novaLinha);
+
+            $('#tableHistorico tbody tr').each(function (index) {
+                $(this).find('.numero-linha').text(index + 1);
+            });
+
+            $('#tableHistorico').removeClass('visually-hidden');
+            $('#textTableHistorico').removeClass('visually-hidden');
+        }
+
+        function AdicionarLinhaTabelaProcesso(processoFinalizado) {
+            var idLinha = processoFinalizado.id;
+            var empresaModel = @Html.Raw(Json.Serialize(Model.Empresas));
+            var areaModel = @Html.Raw(Json.Serialize(Model.Areas));
+            var processoModel = @Html.Raw(Json.Serialize(Model.Processos));
+            var tempoDecorrido = FormatarTempoPorSegundos(processoFinalizado.tempoDecorrido);
+            var dtInicio = moment(new Date(processoFinalizado.dataInicial)).format('DD/MM/YYYY HH:mm:ss');
+
+            var empresaSelecionada = empresaModel.find(function (empresa) {
+                return empresa.id == processoFinalizado.idEmpresa;
+            });
+
+            var processoSelecionado = processoModel.find(function (processo) {
+                return processo.id == processoFinalizado.idProcesso;
+            });
+
+            var areaSelecionada = areaModel.find(function (area) {
+                return area.id == processoSelecionado.idArea;
+            });
+
+
+
+            var novaLinha = '<tr class="bg-warning bg-opacity-10 pausado" data-row=' + idLinha + ' id=' + idLinha + '><th data-row=' + idLinha + '><i id="btnTrash" class="bi bi-trash3 disabled"></i></th><th data-row=' + idLinha + ' class="numero-linha" scope="row"></th><td data-row=' + idLinha + ' class="idAtividade">' + idLinha + '</td><td data-row =' + idLinha + ' class="empresa" id=' + empresaSelecionada.id + '>' + empresaSelecionada.cidade + ' - ' + empresaSelecionada.nome + '</td><td data-row =' + idLinha + ' class="area" id=' + areaSelecionada.id + '>' + areaSelecionada.nome + '</td><td data-row =' + idLinha + ' class="processo" id=' + processoSelecionado.id + '>' + processoSelecionado.nome + '</td><td data-row =' + idLinha + ' class="status">' + 'PAUSA' + '</td><td data-row =' + idLinha + ' class="datainicial">' + dtInicio + '</td><td data-row =' + idLinha + ' class="cronometro">' + tempoDecorrido + '</td><td data-row =' + idLinha + ' class = "acoes">' +
+                '<div class="col d-grid gap-2 d-md-flex justify-content-md-end">' +
+                '<div class="col">' +
+                '<button id="btnPlay" type="button" class="btn btn-secondary btn-sm">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" width = "20" height = "25" fill = "currentColor" class="bi bi-play-fill" viewBox = "0 0 16 16">' +
+                '<path d="m11.596 8.697-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>' +
+                '</svg>' +
+                ' </button>' +
+                '</div>' +
+                '<div class="col">' +
+                '<button id="btnPause" type="button" class="btn btn-secondary btn-sm disabled">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" width = "20" height = "25" fill = "currentColor" class="bi bi-pause-fill" viewBox = "0 0 16 16">' +
+                '<path d="M5.5 3.5A1.5 1.5 0 0 1 7 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5zm5 0A1.5 1.5 0 0 1 12 5v6a1.5 1.5 0 0 1-3 0V5a1.5 1.5 0 0 1 1.5-1.5z"/>' +
+                '</svg>' +
+                '</button>' +
+                '</div>' +
+                '<div class="col">' +
+                '<button id="btnStop" type="button" class="btn btn-secondary btn-sm disabled">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" width = "20" height = "25" fill = "currentColor" class="bi bi-stop-fill" viewBox = "0 0 16 16">' +
+                '<path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5z"/>' +
+                '</svg>' +
+                '</button>' +
+                '</div>' +
+                '</div>' +
+                '</td></tr>';
+
+            $('#tableProcesso tbody').prepend(novaLinha);
+
+            $('#tableProcesso tbody tr').each(function (index) {
+                $(this).find('.numero-linha').text(index + 1);
+            });
+
+
+
+            console.log('empresa selecionada: ', empresaSelecionada);
+            console.log('area selecionada: ', areaSelecionada);
+            console.log('processo selecionada: ', processoSelecionado);
+        }
+
+        function VerificarItensDuplicados(processo) {
+            var duplicado = false;
+            console.log('itens duplicado processo', processo);
+            $('#tableProcesso tbody tr').each(function () {
+                var linha = $(this);
+                var idEmpresa = linha.find('.empresa').attr('id');
+                var idArea = linha.find('.area').attr('id');
+                var idProcesso = linha.find('.processo').attr('id');
+
+                if (idEmpresa == processo.idEmpresa && idProcesso == processo.idProcesso) {
+                    duplicado = true;
+                    return false;
+                }
+            });
+
+            return duplicado;
+        }
+
+    });
+
+    //$('#modalIniciaProcesso').on('click', '#btnIniciar', async function () {
+    //        var processo = await ConsultarProcessoUsuario(idProcessoUsuario);
+    //        if (processo != null) {
+    //            if (processo.dataInicial == null) {
+    //                processo.dataInicial = moment().format('DD/MM/YYYY HH:mm:ss');
+    //            }
+
+    //            //processo.dataMovimento = moment().format('DD/MM/YYYY HH:mm:ss');
+    //            processo.status = 'INICIO';
+    //            processo.dataInicioCronometro = RetormarCronometro(processo);
+    //        console.log('Data Inicio Cronometro botao iniciar: ', processo.dataInicioCronometro);
+    //            processoAtualizado = await AtualizarProcessoUsuario(processo);
+    //            $.AtualizarTabela(processoAtualizado);
+    //            await AdicionarLogProcesso(processoAtualizado);
+    //            $('#modalIniciaProcesso').modal('hide');
+
+    //        }
+    //});
+
+</script>
+
+
+
+
+
+
+
+
