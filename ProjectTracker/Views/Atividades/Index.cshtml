@@ -803,6 +803,7 @@
 
 <script src="~/lib/jquery/dist/jquery.min.js"></script>
 <script src="~/lib/moment.js/moment.min.js"></script>
+<script src="~/lib/moment-timezone/moment-timezone-with-data.min.js"></script>
 <script type="text/javascript">
     //var procs = @Html.Raw(Json.Serialize(Model.Processos));
 
@@ -1049,6 +1050,8 @@
 
             return duplicado;
         }
+
+       
     });
 </script>
 
@@ -1080,13 +1083,13 @@
                     $('#modalProcessoIniciado').modal('show');
                 } else {
                     var processo = await ConsultarProcessoUsuario(idProcessoUsuarioIniciado);
-
+                    var data = await ConsultarDataServidor();
                     var empresaNome = $('#tableProcesso td.empresa[data-row = "' + processo.id + '"]').text();
                     var areaNome = $('#tableProcesso td.area[data-row = "' + processo.id + '"]').text();
                     var processoNome = $('#tableProcesso td.processo[data-row = "' + processo.id + '"]').text();
                     var status = $('#tableProcesso td.status[data-row = "' + processo.id + '"]').text();
                     var dtInicio = moment(new Date(processo.dataInicial)).format('DD/MM/YYYY');
-                    var dtFim = moment().format('DD/MM/YYYY');
+                    var dtFim = moment(data).format('DD/MM/YYYY');
                     var tempoDecorrido = $('#tableProcesso td.cronometro[data-row = "' + processo.id + '"]').text();
 
                     $('#modalIniciaPausaProcesso #tableModalIniciaPausaProcesso th.empresa').text(empresaNome);
@@ -1119,6 +1122,7 @@
         });
 
         $('#modalIniciaProcesso').off('click').on('click', '#btnIniciar', async function () {
+            
             if(requisicaoCompleta){
                 return;
             }
@@ -1126,10 +1130,11 @@
             requisicaoCompleta = true;
 
             $('#modalIniciaProcesso #btnIniciar').addClass('disabled');
+            console.log("Data UTC: ", moment(await ConsultarDataServidor()).format('DD/MM/YYYY HH:mm:ss'));
             var processo = await ConsultarProcessoUsuario(idProcessoUsuario);
             if (processo != null) {
                 if (processo.dataInicial == null) {
-                    processo.dataInicial = moment().format('DD/MM/YYYY HH:mm:ss');
+                    processo.dataInicial = moment(await ConsultarDataServidor()).format('DD/MM/YYYY HH:mm:ss') // moment().format('DD/MM/YYYY HH:mm:ss');
                 }
                 
                 //processo.dataMovimento = moment().format('DD/MM/YYYY HH:mm:ss');
@@ -1138,7 +1143,7 @@
                 console.log('Data Inicio Cronometro botao iniciar: ', processo.dataInicioCronometro);
                 processoAtualizado = await AtualizarProcessoUsuario(processo);
                 await $.AtualizarTabela(processoAtualizado);
-                await AdicionarLogProcesso(processoAtualizado);
+                //await AdicionarLogProcesso(processoAtualizado);
                 $('#modalIniciaProcesso').modal('hide');
 
             }
@@ -1147,7 +1152,7 @@
 
         $('#modalIniciaPausaProcesso').on('click', '#btnIniciarPausar', async function () {
             //PausarCronometro();
-            if(requisicaoCompleta){
+            if (requisicaoCompleta) {
                 return;
             }
 
@@ -1157,7 +1162,9 @@
             var processoIniciado = await ConsultarProcessoUsuario(BuscarIdProcessoIniciado());
             var processoNovo = await ConsultarProcessoUsuario(idProcessoUsuario);
 
-            processoIniciado.dataMovimento = moment().format('DD/MM/YYYY HH:mm:ss');
+            var datapausa = await ConsultarDataServidor();
+
+            processoIniciado.dataMovimento = moment(datapausa).format('DD/MM/YYYY HH:mm:ss');
             processoIniciado.status = 'PAUSA';
             processoIniciado.tempoDecorrido = await RetornarTempoDecorridoFormatado(processoIniciado);
 
@@ -1165,7 +1172,7 @@
             console.log('processo iniciado: ', processoIniciado);
 
             if (processoNovo.dataInicial == null) {
-                processoNovo.dataInicial = moment().format('DD/MM/YYYY HH:mm:ss');
+                processoNovo.dataInicial = moment(datapausa).format('DD/MM/YYYY HH:mm:ss');
             }
 
             //processoNovo.dataMovimento = moment().format('DD/MM/YYYY HH:mm:ss');
@@ -1177,13 +1184,13 @@
             processoIniciadoAtualizado = await AtualizarProcessoUsuario(processoIniciado);
 
             if (processoIniciadoAtualizado.status == 'PAUSA') {
-                await AdicionarLogProcesso(processoIniciadoAtualizado);
+                //await AdicionarLogProcesso(processoIniciadoAtualizado);
                 processoNovoAtualizado = await AtualizarProcessoUsuario(processoNovo);
                 await $.AtualizarTabela(processoIniciadoAtualizado);
             }
 
             if (processoNovoAtualizado.status == 'INICIO') {
-                await AdicionarLogProcesso(processoNovoAtualizado);                               
+                //await AdicionarLogProcesso(processoNovoAtualizado);                               
                 //processoNovoAtualizado.dataInicioCronometro = RetormarCronometro(processoNovoAtualizado)
                 await $.AtualizarTabela(processoNovoAtualizado);
             }
@@ -1198,7 +1205,7 @@
             }
 
             requisicaoCompleta = true;
-            
+            var data = await ConsultarDataServidor();
 
             console.log('click botao pausa');
             var id = $(this).closest('tr').attr('id');
@@ -1209,14 +1216,14 @@
             var idProcPausado = $('#timestamp').attr('idrow');
 
             if (processo.status == 'INICIO') {
-                processo.dataMovimento = moment().format('DD/MM/YYYY HH:mm:ss');
+                processo.dataMovimento = moment(data).format('DD/MM/YYYY HH:mm:ss');
                 processo.status = 'PAUSA';
                 console.log('cronometro formatado segundos:', RetornarTempoDecorridoFormatado(processo));
                 processo.tempoDecorrido = RetornarTempoDecorridoFormatado(processo);
 
 
                 var processoIniciadoPausado = await AtualizarProcessoUsuario(processo);
-                await AdicionarLogProcesso(processoIniciadoPausado);
+                //await AdicionarLogProcesso(processoIniciadoPausado);
                 $.AtualizarTabela(processoIniciadoPausado);
 
                 //$('#tableProcesso td[data-row="' + processo.id + '"] #btnPause').removeClass('disabled');
@@ -1233,13 +1240,14 @@
 
             idProcessoUsuario = $(this).closest('tr').attr('id');
             var processo = await ConsultarProcessoUsuario(idProcessoUsuario);
+            var datafim = await ConsultarDataServidor();
 
             var empresaNome = $('#tableProcesso td.empresa[data-row = "' + processo.id + '"]').text();
             var areaNome = $('#tableProcesso td.area[data-row = "' + processo.id + '"]').text();
             var processoNome = $('#tableProcesso td.processo[data-row = "' + processo.id + '"]').text();
             var status = $('#tableProcesso td.status[data-row = "' + processo.id + '"]').text();
             var dtInicio = moment(new Date(processo.dataInicial)).format('DD/MM/YYYY');
-            var dtFim = moment().format('DD/MM/YYYY');
+            var dtFim = moment(datafim).format('DD/MM/YYYY');
             var tempoDecorrido = $('#tableProcesso td.cronometro[data-row = "' + processo.id + '"]').text();
 
             $('#modalFinalizaProcesso #tableModalFinalizar th.empresa').text(empresaNome);
@@ -1262,13 +1270,15 @@
 
             requisicaoCompleta = true;
 
+            var data = await ConsultarDataServidor();
+
             $('#modalFinalizaProcesso #btnFinalizar').addClass('disabled');
             var processo = await ConsultarProcessoUsuario(idProcessoUsuario);
             var idProcIniciado = BuscarIdProcessoIniciado();
             console.log('data movimento antes do if finalizar: ', processo.dataMovimento);
 
             if (processo.id == idProcIniciado) {
-                processo.dataMovimento = moment().format('DD/MM/YYYY HH:mm:ss');
+                processo.dataMovimento = moment(data).format('DD/MM/YYYY HH:mm:ss');
                 processo.tempoDecorrido = RetornarTempoDecorridoFormatado(processo);
             } else {
                 processo.status = 'FIM';
@@ -1276,11 +1286,11 @@
             }
 
             processo.status = 'FIM';
-            processo.dataFinal = moment().format('DD/MM/YYYY HH:mm:ss');
+            processo.dataFinal = moment(data).format('DD/MM/YYYY HH:mm:ss');
             processo.atvItv = 1;
             console.log('processo que vai ser atualizado: ', processo);
             await AtualizarProcessoUsuario(processo);
-            await AdicionarLogProcesso(processo);
+            //await AdicionarLogProcesso(processo);
             $.AtualizarTabela(processo);
             console.log('id usuario: ', idProcessoUsuario);
             var processoFinalizado = await ConsultarProcessoUsuarioFinalizado(idProcessoUsuario);
@@ -1303,7 +1313,7 @@
         });
 
         $('#tableProcesso').on('click', '#btnTrash', async function () {
-
+            var data = await ConsultarDataServidor();
             idProcessoUsuario = $(this).closest('tr').attr('id');
             var processo = await ConsultarProcessoUsuario(idProcessoUsuario);
 
@@ -1312,7 +1322,7 @@
             var processoNome = $('#tableProcesso td.processo[data-row = "' + processo.id + '"]').text();
             var status = $('#tableProcesso td.status[data-row = "' + processo.id + '"]').text();
             var dtInicio = moment(new Date(processo.dataInicial)).format('DD/MM/YYYY');
-            var dtFim = moment().format('DD/MM/YYYY');
+            var dtFim = moment(data).format('DD/MM/YYYY');
             var tempoDecorrido = $('#tableProcesso td.cronometro[data-row = "' + processo.id + '"]').text();
 
             $('#modalExcluiProcesso #tableModalExcluir th.empresa').text(empresaNome);
@@ -1358,12 +1368,14 @@
             idProcessoUsuario = $(this).closest('tr').attr('id');
             var processo = await ConsultarProcessoUsuarioFinalizado(idProcessoUsuario);
 
+            var data = await ConsultarDataServidor();
+
             var empresaNome = $('#tableHistorico td.empresa[data-row = "' + processo.id + '"]').text();
             var areaNome = $('#tableHistorico td.area[data-row = "' + processo.id + '"]').text();
             var processoNome = $('#tableHistorico td.processo[data-row = "' + processo.id + '"]').text();
             var status = $('#tableHistorico td.status[data-row = "' + processo.id + '"]').text();
             var dtInicio = moment(new Date(processo.dataInicial)).format('DD/MM/YYYY');
-            var dtFim = moment().format('DD/MM/YYYY');
+            var dtFim = moment(data).format('DD/MM/YYYY');
             var tempoDecorrido = $('#tableHistorico td.cronometro[data-row = "' + processo.id + '"]').text();
 
             $('#modalReiniciarProcesso #tableModalReiniciar th.empresa').text(empresaNome);
@@ -1450,6 +1462,22 @@
                     data: {
                         id: idProcesso
                     },
+                    success: function (data) {
+                        resolve(data);
+                    },
+                    error: function (xhr, status, error) {
+                        console.log('Ocorreu um erro na requisição: ' + error);
+                        reject(error);
+                    }
+                });
+            });
+        };
+
+        function ConsultarDataServidor() {
+            return new Promise(function (resolve, reject) {
+                $.ajax({
+                    url: '/Projetos/Atividades/GetDataServidor',
+                    type: 'GET',
                     success: function (data) {
                         resolve(data);
                     },

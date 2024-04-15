@@ -71,16 +71,26 @@ namespace ProjectTracker.Repository
                 var processoIniciado = await _bancoContext.ProcessosUsuario
                                             .Where(i => i.Id == ProcessoUsuario.Id)
                                             .Where(s => s.Status.Equals("INICIO"))
+                                            .AsNoTracking()
                                             .FirstOrDefaultAsync();
 
-                if(processoIniciado != null)
+                DateTime Data = DateTime.Now;
+
+                if (processoIniciado != null)
                 {
                     var LogProcessoIniciado = await _bancoContext.LogProcessos
                      .Where(x => x.IdProcessoUsuario == ProcessoUsuario.Id)
                      .Where(d => d.Status.Equals("INICIO"))
                      .Where(e => e.DataFim == null)
                      .OrderByDescending(o => o.Id)
+                     .AsNoTracking()
                      .FirstOrDefaultAsync();
+
+                    var primeiroLogInicio = await _bancoContext.LogProcessos
+                        .Where(x => x.IdProcessoUsuario == ProcessoUsuario.Id)
+                        .Where(d => d.Status.Equals("INICIO"))
+                        .AsNoTracking()
+                        .CountAsync();
 
                     var LogProcessoPausado = await _bancoContext.LogProcessos
                         .Where(x => x.IdProcessoUsuario == ProcessoUsuario.Id)
@@ -89,38 +99,44 @@ namespace ProjectTracker.Repository
                         .OrderByDescending(o => o.Id)
                         .FirstOrDefaultAsync();
 
-                    if(LogProcessoPausado != null)
+                    if (LogProcessoPausado != null)
                     {
-                        LogProcessoPausado.DataFim = DateTime.Now;
-                        LogProcessoPausado.DataFim = LogProcessoPausado.DataFim.Value.AddTicks(-(LogProcessoPausado.DataFim.Value.Ticks % TimeSpan.TicksPerSecond));
+                        //LogProcessoPausado.DataFim = DateTime.Now;
+                        LogProcessoPausado.DataFim = new DateTime(Data.Year, Data.Month, Data.Day, Data.Hour, Data.Minute, Data.Second); ///LogProcessoPausado.DataFim.Value.AddTicks(-(LogProcessoPausado.DataFim.Value.Ticks % TimeSpan.TicksPerSecond));
                         diferencaTempo = LogProcessoPausado.DataFim - LogProcessoPausado.DataInicio;
                         LogProcessoPausado.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
 
                         _bancoContext.LogProcessos.Entry(LogProcessoPausado).State = EntityState.Modified;
                         _bancoContext.SaveChanges();
 
-                        var resultDataFim = await _bancoContext.LogProcessos
-                                                .AsNoTracking()
+                        var LogPausado = await _bancoContext.LogProcessos
                                                 .Where(i => i.Id == LogProcessoPausado.Id)
+                                                .Where(e => e.DataFim == null)
+                                                .AsNoTracking()
                                                 .FirstOrDefaultAsync();
 
-                        DateTime? DataFimLogProcessoPausado = resultDataFim?.DataFim;
+                        // DateTime? DataFimLogProcessoPausado = resultDataFim?.DataFim;
 
-                        if(DataFimLogProcessoPausado != null && LogProcessoIniciado == null)
+
+                        if (LogPausado == null && LogProcessoIniciado == null)
                         {
                             logProcesso.IdProcessoUsuario = ProcessoUsuario.Id;
                             logProcesso.Status = "INICIO";
-                            logProcesso.DataInicio = LogProcessoPausado.DataFim; //SE EXISTE LOG DE PROCESSO PAUSADO SEM FIM, ENTAO ADICIONA O FIM AO INICIO DO PROXIMO LOG A SER INICIADO.
+                            logProcesso.DataInicio = new DateTime(Data.Year, Data.Month, Data.Day, Data.Hour, Data.Minute, Data.Second);
+                            //logProcesso.DataInicio = logProcesso.DataInicio.Value.AddTicks(-(logProcesso.DataInicio.Value.Ticks % TimeSpan.TicksPerSecond));
+                            // logProcesso.DataInicio = LogProcessoPausado.DataFim; //SE EXISTE LOG DE PROCESSO PAUSADO SEM FIM, ENTAO ADICIONA O FIM AO INICIO DO PROXIMO LOG A SER INICIADO.
 
                             _bancoContext.LogProcessos.Entry(logProcesso).State = EntityState.Added;
                             await _bancoContext.LogProcessos.AddAsync(logProcesso);
                             await _bancoContext.SaveChangesAsync();
                         }
-                    } else if(LogProcessoIniciado == null)
+                    }
+                    else if (primeiroLogInicio == 0)
                     {
                         logProcesso.IdProcessoUsuario = ProcessoUsuario.Id;
                         logProcesso.Status = "INICIO";
-                        logProcesso.DataInicio = ProcessoUsuario.DataInicial;  //CASO NAO EXISTA LOG DE PROCESSO PAUSADO SEM FIM, PEGUE A DATA INICIAL DO PROCESSO USUARIO;
+                        logProcesso.DataInicio = new DateTime(Data.Year, Data.Month, Data.Day, Data.Hour, Data.Minute, Data.Second);
+                        //logProcesso.DataInicio = ProcessoUsuario.DataInicial;  //CASO NAO EXISTA LOG DE PROCESSO PAUSADO SEM FIM, PEGUE A DATA INICIAL DO PROCESSO USUARIO;
 
                         _bancoContext.LogProcessos.Entry(logProcesso).State = EntityState.Added;
                         await _bancoContext.LogProcessos.AddAsync(logProcesso);
@@ -197,13 +213,15 @@ namespace ProjectTracker.Repository
             {
                 LogProcesso logProcesso = new();
                 TimeSpan? diferencaTempo;
+                DateTime Data = DateTime.Now;
 
                 var processoPausado = await _bancoContext.ProcessosUsuario
                                             .Where(i => i.Id == ProcessoUsuario.Id)
                                             .Where(s => s.Status.Equals("PAUSA"))
+                                            .AsNoTracking()
                                             .FirstOrDefaultAsync();
 
-                if(processoPausado != null)
+                if (processoPausado != null)
                 {
                     var LogProcessoIniciado = await _bancoContext.LogProcessos
                         .Where(x => x.IdProcessoUsuario == ProcessoUsuario.Id)
@@ -217,45 +235,47 @@ namespace ProjectTracker.Repository
                         .Where(d => d.Status.Equals("PAUSA"))
                         .Where(e => e.DataFim == null)
                         .OrderByDescending(o => o.Id)
+                        .AsNoTracking()
                         .FirstOrDefaultAsync();
 
-                    if(LogProcessoIniciado != null)
+                    if (LogProcessoIniciado != null)
                     {
-                        LogProcessoIniciado.DataFim = ProcessoUsuario.DataMovimento;
+                        LogProcessoIniciado.DataFim = processoPausado.DataMovimento;
                         diferencaTempo = LogProcessoIniciado.DataFim - LogProcessoIniciado.DataInicio;
                         LogProcessoIniciado.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
 
                         _bancoContext.LogProcessos.Entry(LogProcessoIniciado).State = EntityState.Modified;
                         await _bancoContext.SaveChangesAsync();
 
-                        var resultDataFim = await _bancoContext.LogProcessos
-                                            .AsNoTracking()
+                        var logIniciado = await _bancoContext.LogProcessos
                                             .Where(i => i.Id == LogProcessoIniciado.Id)
+                                            .Where(e => e.DataFim == null)
+                                            .AsNoTracking()
                                             .FirstOrDefaultAsync();
 
-                        DateTime? DataFimLogProcessoInicio = resultDataFim?.DataFim;
+                        // DateTime? DataFimLogProcessoInicio = resultDataFim?.DataFim;
 
-                        if(DataFimLogProcessoInicio != null && LogProcessoPausado == null)
+                        if (logIniciado == null && LogProcessoPausado == null)
                         {
-                            logProcesso.IdProcessoUsuario = ProcessoUsuario.Id;
+                            logProcesso.IdProcessoUsuario = processoPausado.Id;
                             logProcesso.Status = "PAUSA";
-                            logProcesso.DataInicio = ProcessoUsuario.DataMovimento;
+                            logProcesso.DataInicio = processoPausado.DataMovimento;
 
                             _bancoContext.LogProcessos.Entry(logProcesso).State = EntityState.Added;
                             await _bancoContext.LogProcessos.AddAsync(logProcesso);
                             await _bancoContext.SaveChangesAsync();
                         }
                     }
-                    else if(LogProcessoPausado == null)
-                    {
-                        logProcesso.IdProcessoUsuario = ProcessoUsuario.Id;
-                        logProcesso.Status = "PAUSA";
-                        logProcesso.DataInicio = ProcessoUsuario.DataMovimento;
+                    //else if(LogProcessoPausado == null && LogProcessoIniciado == null)
+                    //{
+                    //    logProcesso.IdProcessoUsuario = ProcessoUsuario.Id;
+                    //    logProcesso.Status = "PAUSA";
+                    //    logProcesso.DataInicio = ProcessoUsuario.DataMovimento;
 
-                        _bancoContext.LogProcessos.Entry(logProcesso).State = EntityState.Added;
-                        await _bancoContext.LogProcessos.AddAsync(logProcesso);
-                        await _bancoContext.SaveChangesAsync();
-                    }
+                    //    _bancoContext.LogProcessos.Entry(logProcesso).State = EntityState.Added;
+                    //    await _bancoContext.LogProcessos.AddAsync(logProcesso);
+                    //    await _bancoContext.SaveChangesAsync();
+                    //}
                 }
 
 
@@ -317,53 +337,61 @@ namespace ProjectTracker.Repository
         {
             try
             {
+                var processoFinalizado = await _bancoContext.ProcessosUsuario
+                                            .Where(i => i.Id == ProcessoUsuario.Id)
+                                            .Where(s => s.Status.Equals("FIM"))
+                                            .AsNoTracking()
+                                            .FirstOrDefaultAsync();
+
                 LogProcesso LogProcesso = new();
                 TimeSpan? diferencaTempo;
 
-                var LogProcessoPausado = await _bancoContext.LogProcessos
-                    .Where(x => x.IdProcessoUsuario == ProcessoUsuario.Id)
-                    .Where(d => d.DataFim == null)
-                    .Where(e => e.Status.Equals("PAUSA"))
-                    .OrderByDescending(o => o.Id)
-                    .FirstOrDefaultAsync();
-
-                var LogProcessoIniciado = await _bancoContext.LogProcessos
-                    .Where(x => x.IdProcessoUsuario == ProcessoUsuario.Id)
-                    .Where(d => d.Status.Equals("INICIO"))
-                    .Where(e => e.DataFim == null)
-                    .OrderByDescending(o => o.Id)
-                    .FirstOrDefaultAsync();
-
-                if (LogProcessoPausado != null && ProcessoUsuario != null)
+                if (processoFinalizado != null)
                 {
-                    LogProcessoPausado.DataFim = ProcessoUsuario.DataFinal;
-                    diferencaTempo = LogProcessoPausado.DataFim - LogProcessoPausado.DataInicio;
-                    LogProcessoPausado.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
-                    _bancoContext.LogProcessos.Entry(LogProcessoPausado).State = EntityState.Modified;
-                    await _bancoContext.SaveChangesAsync();
-                }
+                    var LogProcessoPausado = await _bancoContext.LogProcessos
+                      .Where(x => x.IdProcessoUsuario == processoFinalizado.Id)
+                      .Where(d => d.DataFim == null)
+                      .Where(e => e.Status.Equals("PAUSA"))
+                      .OrderByDescending(o => o.Id)
+                      .FirstOrDefaultAsync();
 
-                if (LogProcessoIniciado != null && ProcessoUsuario != null)
-                {
-                    LogProcessoIniciado.DataFim = ProcessoUsuario.DataMovimento;
-                    diferencaTempo = LogProcessoIniciado.DataFim - LogProcessoIniciado.DataInicio;
-                    LogProcessoIniciado.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
-                    _bancoContext.LogProcessos.Entry(LogProcessoIniciado).State = EntityState.Modified;
-                    await _bancoContext.SaveChangesAsync();
-                }
+                    var LogProcessoIniciado = await _bancoContext.LogProcessos
+                        .Where(x => x.IdProcessoUsuario == processoFinalizado.Id)
+                        .Where(d => d.Status.Equals("INICIO"))
+                        .Where(e => e.DataFim == null)
+                        .OrderByDescending(o => o.Id)
+                        .FirstOrDefaultAsync();
 
-                if (ProcessoUsuario != null)
-                {
-                    LogProcesso.IdProcessoUsuario = ProcessoUsuario.Id;
-                    LogProcesso.DataInicio = ProcessoUsuario.DataFinal;
-                    LogProcesso.DataFim = ProcessoUsuario.DataFinal;
-                    LogProcesso.Status = "FIM";
-                    diferencaTempo = LogProcesso.DataFim - LogProcesso.DataInicio;
-                    LogProcesso.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
+                    if (LogProcessoPausado != null)
+                    {
+                        LogProcessoPausado.DataFim = processoFinalizado.DataFinal;
+                        diferencaTempo = LogProcessoPausado.DataFim - LogProcessoPausado.DataInicio;
+                        LogProcessoPausado.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
+                        _bancoContext.LogProcessos.Entry(LogProcessoPausado).State = EntityState.Modified;
+                        await _bancoContext.SaveChangesAsync();
+                    }
 
-                    _bancoContext.LogProcessos.Entry(LogProcesso).State = EntityState.Added;
-                    await _bancoContext.LogProcessos.AddAsync(LogProcesso);
-                    await _bancoContext.SaveChangesAsync();
+                    if (LogProcessoIniciado != null)
+                    {
+                        LogProcessoIniciado.DataFim = processoFinalizado.DataFinal;
+                        diferencaTempo = LogProcessoIniciado.DataFim - LogProcessoIniciado.DataInicio;
+                        LogProcessoIniciado.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
+                        _bancoContext.LogProcessos.Entry(LogProcessoIniciado).State = EntityState.Modified;
+                        await _bancoContext.SaveChangesAsync();
+                    }
+
+                    
+                        LogProcesso.IdProcessoUsuario = processoFinalizado.Id;
+                        LogProcesso.DataInicio = processoFinalizado.DataFinal;
+                        LogProcesso.DataFim = processoFinalizado.DataFinal;
+                        LogProcesso.Status = "FIM";
+                        diferencaTempo = LogProcesso.DataFim - LogProcesso.DataInicio;
+                        LogProcesso.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
+
+                        _bancoContext.LogProcessos.Entry(LogProcesso).State = EntityState.Added;
+                        await _bancoContext.LogProcessos.AddAsync(LogProcesso);
+                        await _bancoContext.SaveChangesAsync();
+                    
                 }
             }
             catch (Exception ex)
@@ -394,7 +422,8 @@ namespace ProjectTracker.Repository
             {
                 _bancoContext.LogProcessos.Entry(LogProcesso).State = EntityState.Modified;
                 await _bancoContext.SaveChangesAsync();
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 throw ex;
             }
@@ -408,7 +437,8 @@ namespace ProjectTracker.Repository
                       .Where(x => x.IdProcessoUsuario == idProcessoUsuario)
                       .Where(d => d.Status.Equals("FIM")).FirstAsync();
                 return logProcesso;
-            } catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 throw ex;
             }

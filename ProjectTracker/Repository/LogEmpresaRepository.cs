@@ -21,17 +21,15 @@ namespace ProjectTracker.Repository
         {
             try
             {
-                TimeSpan? diferencaTempo;
-                LogEmpresa logEmpresa = new();
-
+                DateTime Data = DateTime.Now;
                 var processoIniciado = await _bancoContext.ProcessosUsuario
                      .Where(x => x.IdEmpresa == processo.IdEmpresa)
                      .Where(d => d.Status.Equals("INICIO"))
+                     .AsNoTracking()
                      .FirstOrDefaultAsync();
 
-                if (processoIniciado == null)
+                if(processoIniciado != null)
                 {
-
                     var logEmpresaPausada = await _bancoContext.LogEmpresas
                         .Where(x => x.IdEmpresa == processo.IdEmpresa)
                         .Where(s => s.Status.Equals("PAUSA"))
@@ -39,68 +37,136 @@ namespace ProjectTracker.Repository
                         .OrderByDescending(o => o.Id)
                         .FirstOrDefaultAsync();
 
-                    var logEmpresaIniciada = await _bancoContext.LogEmpresas
+                    var primeiroLogInicio = await _bancoContext.LogEmpresas
                         .Where(x => x.IdEmpresa == processo.IdEmpresa)
-                        .Where(s => s.Status.Equals("INICIO"))
-                        .Where(d => d.DataFim == null)
-                        .OrderByDescending(o => o.Id)
-                        .FirstOrDefaultAsync();
-
-                    var empresa = await _bancoContext.Empresas
-                        .Where(x => x.Id == processo.IdEmpresa)
-                        .FirstAsync();
+                        .Where(d => d.Status.Equals("INICIO"))
+                        .AsNoTracking()
+                        .CountAsync();
 
                     if (logEmpresaPausada != null)
                     {
-                        logEmpresaPausada.DataFim = DateTime.Now;
-                        logEmpresaPausada.DataFim = logEmpresaPausada.DataFim.Value.AddTicks(-(logEmpresaPausada.DataFim.Value.Ticks % TimeSpan.TicksPerSecond));
-                        diferencaTempo = logEmpresaPausada.DataFim - logEmpresaPausada.DataInicio;
-                        logEmpresaPausada.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
-
-
-
+                        var logPausa = new LogEmpresa();
+                        logEmpresaPausada.DataFim = new DateTime(Data.Year, Data.Month, Data.Day, Data.Hour, Data.Minute, Data.Second);
+                        logEmpresaPausada.TempoDecorrido = (long?)(logEmpresaPausada.DataFim - logEmpresaPausada.DataInicio).Value.TotalSeconds;
                         _bancoContext.LogEmpresas.Entry(logEmpresaPausada).State = EntityState.Modified;
-                        _bancoContext.SaveChanges();
+                        await _bancoContext.SaveChangesAsync();
 
-                        var resultDataFim = await _bancoContext.LogEmpresas
+                        logPausa = await _bancoContext.LogEmpresas
                                                 .AsNoTracking()
                                                 .Where(x => x.Id == logEmpresaPausada.Id)
+                                                .Where(d => d.DataFim != null)
+                                                .AsNoTracking()
                                                 .FirstOrDefaultAsync();
 
-                        DateTime? DataFimLogEmpresaPausado = resultDataFim?.DataFim;
-
-                        if (DataFimLogEmpresaPausado != null && logEmpresaIniciada == null)
+                        if(logPausa != null)
                         {
+                            LogEmpresa logEmpresa = new();
                             logEmpresa.IdEmpresa = processo.IdEmpresa;
                             logEmpresa.Status = "INICIO";
-                            logEmpresa.DataCadastro = DateTime.Now;
-                            logEmpresa.DataInicio = logEmpresaPausada.DataFim;
+                            logEmpresa.DataCadastro = new DateTime(Data.Year, Data.Month, Data.Day, Data.Hour, Data.Minute, Data.Second);
+                            logEmpresa.DataInicio = logPausa.DataFim;
 
                             _bancoContext.LogEmpresas.Entry(logEmpresa).State = EntityState.Added;
                             await _bancoContext.LogEmpresas.AddAsync(logEmpresa);
                             await _bancoContext.SaveChangesAsync();
                         }
-
                     }
-                    else if (logEmpresaIniciada == null)
+                    else if(primeiroLogInicio == 0)
                     {
+                        LogEmpresa logEmpresa = new();
                         logEmpresa.IdEmpresa = processo.IdEmpresa;
                         logEmpresa.Status = "INICIO";
-                        logEmpresa.DataCadastro = DateTime.Now;
+                        logEmpresa.DataCadastro = new DateTime(Data.Year, Data.Month, Data.Day, Data.Hour, Data.Minute, Data.Second);
                         logEmpresa.DataInicio = processo.DataInicial;
 
                         _bancoContext.LogEmpresas.Entry(logEmpresa).State = EntityState.Added;
                         await _bancoContext.LogEmpresas.AddAsync(logEmpresa);
                         await _bancoContext.SaveChangesAsync();
-
-                        if (empresa.DataInicio == null)
-                        {
-                            empresa.DataInicio = processo.DataInicial;
-                            _bancoContext.Empresas.Entry(empresa).State = EntityState.Modified;
-                            await _bancoContext.SaveChangesAsync();
-                        }
                     }
                 }
+
+                //TimeSpan? diferencaTempo;
+                //LogEmpresa logEmpresa = new();
+
+                //var processoIniciado = await _bancoContext.ProcessosUsuario
+                //     .Where(x => x.IdEmpresa == processo.IdEmpresa)
+                //     .Where(d => d.Status.Equals("INICIO"))
+                //     .FirstOrDefaultAsync();
+
+                //if (processoIniciado == null)
+                //{
+
+                //    var logEmpresaPausada = await _bancoContext.LogEmpresas
+                //        .Where(x => x.IdEmpresa == processo.IdEmpresa)
+                //        .Where(s => s.Status.Equals("PAUSA"))
+                //        .Where(d => d.DataFim == null)
+                //        .OrderByDescending(o => o.Id)
+                //        .FirstOrDefaultAsync();
+
+                //    var logEmpresaIniciada = await _bancoContext.LogEmpresas
+                //        .Where(x => x.IdEmpresa == processo.IdEmpresa)
+                //        .Where(s => s.Status.Equals("INICIO"))
+                //        .Where(d => d.DataFim == null)
+                //        .OrderByDescending(o => o.Id)
+                //        .FirstOrDefaultAsync();
+
+                //    var empresa = await _bancoContext.Empresas
+                //        .Where(x => x.Id == processo.IdEmpresa)
+                //        .FirstAsync();
+
+                //    if (logEmpresaPausada != null)
+                //    {
+                //        logEmpresaPausada.DataFim = DateTime.Now;
+                //        logEmpresaPausada.DataFim = logEmpresaPausada.DataFim.Value.AddTicks(-(logEmpresaPausada.DataFim.Value.Ticks % TimeSpan.TicksPerSecond));
+                //        diferencaTempo = logEmpresaPausada.DataFim - logEmpresaPausada.DataInicio;
+                //        logEmpresaPausada.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
+
+
+
+                //        _bancoContext.LogEmpresas.Entry(logEmpresaPausada).State = EntityState.Modified;
+                //        _bancoContext.SaveChanges();
+
+                //        var resultDataFim = await _bancoContext.LogEmpresas
+                //                                .AsNoTracking()
+                //                                .Where(x => x.Id == logEmpresaPausada.Id)
+                //                                .FirstOrDefaultAsync();
+
+                //        DateTime? DataFimLogEmpresaPausado = resultDataFim?.DataFim;
+
+                //        if (DataFimLogEmpresaPausado != null && logEmpresaIniciada == null)
+                //        {
+                //            logEmpresa.IdEmpresa = processo.IdEmpresa;
+                //            logEmpresa.Status = "INICIO";
+                //            logEmpresa.DataCadastro = DateTime.Now;
+                //            logEmpresa.DataInicio = logEmpresaPausada.DataFim;
+
+                //            _bancoContext.LogEmpresas.Entry(logEmpresa).State = EntityState.Added;
+                //            await _bancoContext.LogEmpresas.AddAsync(logEmpresa);
+                //            await _bancoContext.SaveChangesAsync();
+                //        }
+
+                //    }
+                //    else if (logEmpresaIniciada == null)
+                //    {
+                //        logEmpresa.IdEmpresa = processo.IdEmpresa;
+                //        logEmpresa.Status = "INICIO";
+                //        logEmpresa.DataCadastro = DateTime.Now;
+                //        logEmpresa.DataInicio = processo.DataInicial;
+
+                //        _bancoContext.LogEmpresas.Entry(logEmpresa).State = EntityState.Added;
+                //        await _bancoContext.LogEmpresas.AddAsync(logEmpresa);
+                //        await _bancoContext.SaveChangesAsync();
+
+                //        if (empresa.DataInicio == null)
+                //        {
+                //            empresa.DataInicio = processo.DataInicial;
+                //            _bancoContext.Empresas.Entry(empresa).State = EntityState.Modified;
+                //            await _bancoContext.SaveChangesAsync();
+                //        }
+                //    }
+                //}
+
+
 
                 //var processoIniciado = await _bancoContext.ProcessosUsuario
                 //    .Where(x => x.IdEmpresa == processo.IdEmpresa)
@@ -173,15 +239,12 @@ namespace ProjectTracker.Repository
         {
             try
             {
-                TimeSpan? diferencaTempo;
-                LogEmpresa logEmpresa = new();
-
                 var processoIniciado = await _bancoContext.ProcessosUsuario
                     .Where(x => x.IdEmpresa == processo.IdEmpresa)
                     .Where(d => d.Status.Equals("INICIO"))
                     .FirstOrDefaultAsync();
 
-                if (processoIniciado == null)
+                if(processoIniciado == null)
                 {
                     var logEmpresaIniciada = await _bancoContext.LogEmpresas
                         .Where(x => x.IdEmpresa == processo.IdEmpresa)
@@ -190,30 +253,23 @@ namespace ProjectTracker.Repository
                         .OrderByDescending(o => o.Id)
                         .FirstOrDefaultAsync();
 
-                    var logEmpresaPausada = _bancoContext.LogEmpresas
-                        .Where(x => x.IdEmpresa == processo.IdEmpresa)
-                        .Where(s => s.Status.Equals("PAUSA"))
-                        .Where(d => d.DataFim == null)
-                        .OrderByDescending(o => o.Id)
-                        .FirstOrDefault();
-
                     if(logEmpresaIniciada != null)
                     {
+                        var logIniciado = new LogEmpresa();
                         logEmpresaIniciada.DataFim = processo.DataMovimento;
-                        diferencaTempo = logEmpresaIniciada.DataFim - logEmpresaIniciada.DataInicio;
-                        logEmpresaIniciada.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
-
+                        logEmpresaIniciada.TempoDecorrido = (long?)(logEmpresaIniciada.DataFim - logEmpresaIniciada.DataInicio).Value.TotalSeconds;
                         _bancoContext.LogEmpresas.Entry(logEmpresaIniciada).State = EntityState.Modified;
                         await _bancoContext.SaveChangesAsync();
 
-                        var resultDataFim = await _bancoContext.LogEmpresas
+                        logIniciado = await _bancoContext.LogEmpresas
                                             .Where(x => x.Id == logEmpresaIniciada.Id)
+                                            .Where(d => d.DataFim != null)
+                                            .AsNoTracking()
                                             .FirstOrDefaultAsync();
 
-                        DateTime? DataFimLogEmpresaIniciada = resultDataFim?.DataFim;
-
-                        if(DataFimLogEmpresaIniciada != null && logEmpresaPausada == null)
+                        if(logIniciado != null)
                         {
+                            LogEmpresa logEmpresa = new LogEmpresa();
                             logEmpresa.IdEmpresa = processo.IdEmpresa;
                             logEmpresa.Status = "PAUSA";
                             logEmpresa.DataInicio = processo.DataMovimento;
@@ -224,7 +280,61 @@ namespace ProjectTracker.Repository
                             await _bancoContext.SaveChangesAsync();
                         }
                     }
+
                 }
+
+                //TimeSpan? diferencaTempo;
+                //LogEmpresa logEmpresa = new();
+
+                //var processoIniciado = await _bancoContext.ProcessosUsuario
+                //    .Where(x => x.IdEmpresa == processo.IdEmpresa)
+                //    .Where(d => d.Status.Equals("INICIO"))
+                //    .FirstOrDefaultAsync();
+
+                //if (processoIniciado == null)
+                //{
+                //    var logEmpresaIniciada = await _bancoContext.LogEmpresas
+                //        .Where(x => x.IdEmpresa == processo.IdEmpresa)
+                //        .Where(s => s.Status.Equals("INICIO"))
+                //        .Where(d => d.DataFim == null)
+                //        .OrderByDescending(o => o.Id)
+                //        .FirstOrDefaultAsync();
+
+                //    var logEmpresaPausada = _bancoContext.LogEmpresas
+                //        .Where(x => x.IdEmpresa == processo.IdEmpresa)
+                //        .Where(s => s.Status.Equals("PAUSA"))
+                //        .Where(d => d.DataFim == null)
+                //        .OrderByDescending(o => o.Id)
+                //        .FirstOrDefault();
+
+                //    if (logEmpresaIniciada != null)
+                //    {
+                //        logEmpresaIniciada.DataFim = processo.DataMovimento;
+                //        diferencaTempo = logEmpresaIniciada.DataFim - logEmpresaIniciada.DataInicio;
+                //        logEmpresaIniciada.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
+
+                //        _bancoContext.LogEmpresas.Entry(logEmpresaIniciada).State = EntityState.Modified;
+                //        await _bancoContext.SaveChangesAsync();
+
+                //        var resultDataFim = await _bancoContext.LogEmpresas
+                //                            .Where(x => x.Id == logEmpresaIniciada.Id)
+                //                            .FirstOrDefaultAsync();
+
+                //        DateTime? DataFimLogEmpresaIniciada = resultDataFim?.DataFim;
+
+                //        if (DataFimLogEmpresaIniciada != null && logEmpresaPausada == null)
+                //        {
+                //            logEmpresa.IdEmpresa = processo.IdEmpresa;
+                //            logEmpresa.Status = "PAUSA";
+                //            logEmpresa.DataInicio = processo.DataMovimento;
+                //            logEmpresa.DataCadastro = DateTime.Now;
+
+                //            _bancoContext.LogEmpresas.Entry(logEmpresa).State = EntityState.Added;
+                //            await _bancoContext.LogEmpresas.AddAsync(logEmpresa);
+                //            await _bancoContext.SaveChangesAsync();
+                //        }
+                //    }
+                //}
 
                 //var processoIniciado = _bancoContext.ProcessosUsuario
                 //    .Where(x => x.IdEmpresa == processo.IdEmpresa)

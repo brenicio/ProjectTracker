@@ -33,8 +33,9 @@ namespace ProjectTracker.Repository
         {
             try
             {
-                TimeSpan? diferencaTempo;
+                TimeSpan? diferencaTempo = TimeSpan.Zero;
                 LogArea logArea = new();
+                DateTime Data = DateTime.Now;
 
                 var resultIdArea = await _bancoContext.Processos.AsNoTracking().FirstAsync(x => x.Id == processo.IdProcesso);
                 var idArea = resultIdArea.IdArea;
@@ -46,10 +47,20 @@ namespace ProjectTracker.Repository
                                                   ProcessosUsuario = pu,
                                                   Processos = p
                                               }
-                                       ).FirstOrDefaultAsync();
+                                       ).AsNoTracking().FirstOrDefaultAsync();
 
-                if(processoIniciado == null)
+                if(processoIniciado != null)
                 {
+                    
+                    var logAreaIniciado = await _bancoContext.LogAreas
+                        .Where(x => x.IdArea == idArea)
+                        .Where(d => d.Status.Equals("INICIO"))
+                        .Where(i => i.DataFim == null)
+                        .Where(e => e.IdEmpresa == processo.IdEmpresa)
+                        .AsNoTracking()
+                        .OrderByDescending(o => o.Id)
+                        .FirstOrDefaultAsync();
+
                     var logAreaPausado = await _bancoContext.LogAreas
                         .Where(x => x.IdArea == idArea)
                         .Where(d => d.Status.Equals("PAUSA"))
@@ -58,61 +69,120 @@ namespace ProjectTracker.Repository
                         .OrderByDescending(o => o.Id)
                         .FirstOrDefaultAsync();
 
-                    var logAreaIniciado = await _bancoContext.LogAreas
-                        .Where(x => x.IdArea == idArea)
-                        .Where(d => d.Status.Equals("INICIO"))
-                        .Where(i => i.DataFim == null)
-                        .Where(e => e.IdEmpresa == processo.IdEmpresa)
-                        .OrderByDescending(o => o.Id)
-                        .FirstOrDefaultAsync();
-
-                    if (logAreaPausado != null)
+                    if(logAreaIniciado == null)
                     {
-                        logAreaPausado.DataFim = DateTime.Now;
-                        logAreaPausado.DataFim = logAreaPausado.DataFim.Value.AddTicks(-(logAreaPausado.DataFim.Value.Ticks % TimeSpan.TicksPerSecond));
-                        diferencaTempo = logAreaPausado.DataFim - logAreaPausado.DataInicio;
-                        logAreaPausado.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
-                        
+                        var logPausado = new LogArea();
+                        if (logAreaPausado != null)
+                        {
+                            logAreaPausado.DataFim = new DateTime(Data.Year, Data.Month, Data.Day, Data.Hour, Data.Minute, Data.Second);
+                            logAreaPausado.TempoDecorrido = (long?)(logAreaPausado.DataFim - logAreaPausado.DataInicio).Value.TotalSeconds;
+                            _bancoContext.LogAreas.Entry(logAreaPausado).State = EntityState.Modified;
+                            await _bancoContext.SaveChangesAsync();
 
-                        _bancoContext.LogAreas.Entry(logAreaPausado).State = EntityState.Modified;
-                        await _bancoContext.SaveChangesAsync();
-
-
-                        var resultDataFim = await _bancoContext.LogAreas
+                            logPausado = await _bancoContext.LogAreas
                                                 .AsNoTracking()
                                                 .Where(i => i.Id == logAreaPausado.Id)
+                                                .Where(d => d.DataFim != null)
                                                 .FirstOrDefaultAsync();
+                        }
 
-                        DateTime? DataFimLogAreaPausado = resultDataFim?.DataFim;
-
-
-                        if (DataFimLogAreaPausado != null && logAreaIniciado == null)
+                        if(logPausado != null)
                         {
                             logArea.IdArea = idArea;
                             logArea.IdEmpresa = processo.IdEmpresa;
                             logArea.Status = "INICIO";
-                            logArea.DataInicio = logAreaPausado.DataFim;  //SE EXISTE LOG DE AREA PAUSADO SEM FIM, ENTAO ADICIONA O FIM AO INICIO DO PROXIMO LOG A SER INICIADO.
-                            logArea.DataCadastro = DateTime.Now;
+                            logArea.DataInicio = logPausado.DataFim;
+                            logArea.DataCadastro = new DateTime(Data.Year, Data.Month, Data.Day, Data.Hour, Data.Minute, Data.Second);
 
                             _bancoContext.LogAreas.Entry(logArea).State = EntityState.Added;
                             await _bancoContext.LogAreas.AddAsync(logArea);
                             await _bancoContext.SaveChangesAsync();
                         }
-
-                    }  
-                    else if (logAreaIniciado == null)
-                    {
-                        logArea.IdArea = idArea;
-                        logArea.IdEmpresa = processo.IdEmpresa;
-                        logArea.Status = "INICIO";
-                        logArea.DataInicio = processo.DataInicial;
-                        logArea.DataCadastro = DateTime.Now;
-
-                        _bancoContext.LogAreas.Entry(logArea).State = EntityState.Added;
-                        await _bancoContext.LogAreas.AddAsync(logArea);
-                        await _bancoContext.SaveChangesAsync();
+                        
                     }
                 }
+
+
+                //TimeSpan? diferencaTempo;
+                //LogArea logArea = new();
+
+                //var resultIdArea = await _bancoContext.Processos.AsNoTracking().FirstAsync(x => x.Id == processo.IdProcesso);
+                //var idArea = resultIdArea.IdArea;
+                //var processoIniciado = await (from pu in _bancoContext.ProcessosUsuario
+                //                              join p in _bancoContext.Processos on pu.IdProcesso equals p.Id
+                //                              where pu.AtvItv == 0 && p.IdArea == idArea && pu.Status == "INICIO" && pu.IdEmpresa == processo.IdEmpresa
+                //                              select new
+                //                              {
+                //                                  ProcessosUsuario = pu,
+                //                                  Processos = p
+                //                              }
+                //                       ).FirstOrDefaultAsync();
+
+                //if(processoIniciado == null)
+                //{
+                //    var logAreaPausado = await _bancoContext.LogAreas
+                //        .Where(x => x.IdArea == idArea)
+                //        .Where(d => d.Status.Equals("PAUSA"))
+                //        .Where(i => i.DataFim == null)
+                //        .Where(e => e.IdEmpresa == processo.IdEmpresa)
+                //        .OrderByDescending(o => o.Id)
+                //        .FirstOrDefaultAsync();
+
+                //    var logAreaIniciado = await _bancoContext.LogAreas
+                //        .Where(x => x.IdArea == idArea)
+                //        .Where(d => d.Status.Equals("INICIO"))
+                //        .Where(i => i.DataFim == null)
+                //        .Where(e => e.IdEmpresa == processo.IdEmpresa)
+                //        .OrderByDescending(o => o.Id)
+                //        .FirstOrDefaultAsync();
+
+                //    if (logAreaPausado != null)
+                //    {
+                //        logAreaPausado.DataFim = DateTime.Now;
+                //        logAreaPausado.DataFim = logAreaPausado.DataFim.Value.AddTicks(-(logAreaPausado.DataFim.Value.Ticks % TimeSpan.TicksPerSecond));
+                //        diferencaTempo = logAreaPausado.DataFim - logAreaPausado.DataInicio;
+                //        logAreaPausado.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
+
+
+                //        _bancoContext.LogAreas.Entry(logAreaPausado).State = EntityState.Modified;
+                //        await _bancoContext.SaveChangesAsync();
+
+
+                //        var resultDataFim = await _bancoContext.LogAreas
+                //                                .AsNoTracking()
+                //                                .Where(i => i.Id == logAreaPausado.Id)
+                //                                .FirstOrDefaultAsync();
+
+                //        DateTime? DataFimLogAreaPausado = resultDataFim?.DataFim;
+
+
+                //        if (DataFimLogAreaPausado != null && logAreaIniciado == null)
+                //        {
+                //            logArea.IdArea = idArea;
+                //            logArea.IdEmpresa = processo.IdEmpresa;
+                //            logArea.Status = "INICIO";
+                //            logArea.DataInicio = logAreaPausado.DataFim;  //SE EXISTE LOG DE AREA PAUSADO SEM FIM, ENTAO ADICIONA O FIM AO INICIO DO PROXIMO LOG A SER INICIADO.
+                //            logArea.DataCadastro = DateTime.Now;
+
+                //            _bancoContext.LogAreas.Entry(logArea).State = EntityState.Added;
+                //            await _bancoContext.LogAreas.AddAsync(logArea);
+                //            await _bancoContext.SaveChangesAsync();
+                //        }
+
+                //    }  
+                //    else if (logAreaIniciado == null)
+                //    {
+                //        logArea.IdArea = idArea;
+                //        logArea.IdEmpresa = processo.IdEmpresa;
+                //        logArea.Status = "INICIO";
+                //        logArea.DataInicio = processo.DataInicial;
+                //        logArea.DataCadastro = DateTime.Now;
+
+                //        _bancoContext.LogAreas.Entry(logArea).State = EntityState.Added;
+                //        await _bancoContext.LogAreas.AddAsync(logArea);
+                //        await _bancoContext.SaveChangesAsync();
+                //    }
+                //}
 
 
                 //var logAreaPausado = await _bancoContext.LogAreas
@@ -179,9 +249,8 @@ namespace ProjectTracker.Repository
         {
             try
             {
-                TimeSpan? diferencaTempo;
+                DateTime Data = DateTime.Now;
                 LogArea logArea = new();
-
                 var resultIdArea = await _bancoContext.Processos.AsNoTracking().FirstAsync(x => x.Id == processo.IdProcesso);
                 var idArea = resultIdArea.IdArea;
                 var processoIniciado = await (from pu in _bancoContext.ProcessosUsuario
@@ -192,9 +261,9 @@ namespace ProjectTracker.Repository
                                                   ProcessosUsuario = pu,
                                                   Processos = p
                                               }
-                                       ).FirstOrDefaultAsync();
+                                       ).AsNoTracking().FirstOrDefaultAsync();
 
-                if (processoIniciado == null)
+                if(processoIniciado == null)
                 {
                     var logAreaIniciado = await _bancoContext.LogAreas
                         .Where(x => x.IdArea == idArea)
@@ -212,38 +281,105 @@ namespace ProjectTracker.Repository
                         .OrderByDescending(o => o.Id)
                         .FirstOrDefaultAsync();
 
-                    if (logAreaIniciado != null)
+                    if(logAreaIniciado != null)
                     {
+                        var logIniciado = new LogArea();
                         logAreaIniciado.DataFim = processo.DataMovimento;
-                        diferencaTempo = logAreaIniciado.DataFim - logAreaIniciado.DataInicio;
-                        logAreaIniciado.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
-
+                        logAreaIniciado.TempoDecorrido = (long?)(logAreaIniciado.DataFim - logAreaIniciado.DataInicio).Value.TotalSeconds;
                         _bancoContext.LogAreas.Entry(logAreaIniciado).State = EntityState.Modified;
                         await _bancoContext.SaveChangesAsync();
 
-                        var resultDataFim = await _bancoContext.LogAreas
+                        logIniciado = await _bancoContext.LogAreas
                                             .AsNoTracking()
                                             .Where(i => i.Id == logAreaIniciado.Id)
+                                            .Where(d => d.DataFim != null)
                                             .FirstOrDefaultAsync();
-
-                        DateTime? DataFimLogAreaInicio = resultDataFim?.DataFim;
-
-                        if (DataFimLogAreaInicio != null && logAreaPausado == null)
+                                                                                                                                  
+                        if(logIniciado != null)
                         {
                             logArea.IdArea = idArea;
                             logArea.IdEmpresa = processo.IdEmpresa;
                             logArea.Status = "PAUSA";
                             logArea.DataInicio = processo.DataMovimento;
-                            logArea.DataCadastro = DateTime.Now;
+                            logArea.DataCadastro = new DateTime(Data.Year, Data.Month, Data.Day, Data.Hour, Data.Minute, Data.Second);
 
                             _bancoContext.LogAreas.Entry(logArea).State = EntityState.Added;
                             await _bancoContext.LogAreas.AddAsync(logArea);
                             await _bancoContext.SaveChangesAsync();
                         }
-                    }                 
 
-                    
+                    }
                 }
+
+
+
+
+
+                //TimeSpan? diferencaTempo;
+                //LogArea logArea = new();
+
+                //var resultIdArea = await _bancoContext.Processos.AsNoTracking().FirstAsync(x => x.Id == processo.IdProcesso);
+                //var idArea = resultIdArea.IdArea;
+                //var processoIniciado = await (from pu in _bancoContext.ProcessosUsuario
+                //                              join p in _bancoContext.Processos on pu.IdProcesso equals p.Id
+                //                              where pu.AtvItv == 0 && p.IdArea == idArea && pu.Status == "INICIO" && pu.IdEmpresa == processo.IdEmpresa
+                //                              select new
+                //                              {
+                //                                  ProcessosUsuario = pu,
+                //                                  Processos = p
+                //                              }
+                //                       ).FirstOrDefaultAsync();
+
+                //if (processoIniciado == null)
+                //{
+                //    var logAreaIniciado = await _bancoContext.LogAreas
+                //        .Where(x => x.IdArea == idArea)
+                //        .Where(d => d.Status.Equals("INICIO"))
+                //        .Where(i => i.DataFim == null)
+                //        .Where(e => e.IdEmpresa == processo.IdEmpresa)
+                //        .OrderByDescending(o => o.Id)
+                //        .FirstOrDefaultAsync();
+
+                //    var logAreaPausado = await _bancoContext.LogAreas
+                //        .Where(x => x.IdArea == idArea)
+                //        .Where(d => d.Status.Equals("PAUSA"))
+                //        .Where(i => i.DataFim == null)
+                //        .Where(e => e.IdEmpresa == processo.IdEmpresa)
+                //        .OrderByDescending(o => o.Id)
+                //        .FirstOrDefaultAsync();
+
+                //    if (logAreaIniciado != null)
+                //    {
+                //        logAreaIniciado.DataFim = processo.DataMovimento;
+                //        diferencaTempo = logAreaIniciado.DataFim - logAreaIniciado.DataInicio;
+                //        logAreaIniciado.TempoDecorrido = (long?)diferencaTempo.Value.TotalSeconds;
+
+                //        _bancoContext.LogAreas.Entry(logAreaIniciado).State = EntityState.Modified;
+                //        await _bancoContext.SaveChangesAsync();
+
+                //        var resultDataFim = await _bancoContext.LogAreas
+                //                            .AsNoTracking()
+                //                            .Where(i => i.Id == logAreaIniciado.Id)
+                //                            .FirstOrDefaultAsync();
+
+                //        DateTime? DataFimLogAreaInicio = resultDataFim?.DataFim;
+
+                //        if (DataFimLogAreaInicio != null && logAreaPausado == null)
+                //        {
+                //            logArea.IdArea = idArea;
+                //            logArea.IdEmpresa = processo.IdEmpresa;
+                //            logArea.Status = "PAUSA";
+                //            logArea.DataInicio = processo.DataMovimento;
+                //            logArea.DataCadastro = DateTime.Now;
+
+                //            _bancoContext.LogAreas.Entry(logArea).State = EntityState.Added;
+                //            await _bancoContext.LogAreas.AddAsync(logArea);
+                //            await _bancoContext.SaveChangesAsync();
+                //        }
+                //    }                 
+
+
+                //}
 
                 //var logAreaIniciado = await _bancoContext.LogAreas
                 //    .Where(x => x.IdArea == idArea)

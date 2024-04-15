@@ -16,6 +16,7 @@ namespace ProjectTracker.Repository
 
         public ProcessoUsuario AddProcessoUsuario(ProcessoUsuario processo)
         {
+            
             _bancoContext.ProcessosUsuario.Entry(processo).State = EntityState.Added;
             _bancoContext.ProcessosUsuario.Add(processo);
             _bancoContext.SaveChanges();

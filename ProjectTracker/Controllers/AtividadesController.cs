@@ -97,6 +97,13 @@ namespace ProjectTracker.Controllers
             var processo = _processoUsuarioService.GetProcessoUsuarioFinalizados(id);
             return Json(processo);
         }
+        [HttpGet]
+        public DateTime GetDataServidor()
+        {
+            DateTime Data = DateTime.Now;
+            return new DateTime(Data.Year, Data.Month, Data.Day, Data.Hour, Data.Minute, Data.Second);
+
+        }
 
         [HttpGet]
         public async Task<IActionResult> GetLastLogProcesso(int id)
@@ -119,13 +126,22 @@ namespace ProjectTracker.Controllers
                 
                 if (ProcessoUsuario.Status.Equals("INICIO"))
                 {
-                    await _logAreaService.AddLogAreaInicio(ProcessoUsuario);
-                    await _logEmpresaService.AddLogEmpresaInicio(ProcessoUsuario);
                     await _processoUsuarioService.UpdateProcessoUsuario(ProcessoUsuario);
+                    await _logProcessoService.AddLogProcessoInicio(ProcessoUsuario);
+                    await _logAreaService.AddLogAreaInicio(ProcessoUsuario);
+                    await _logEmpresaService.AddLogEmpresaInicio(ProcessoUsuario);                    
                 }
-                else if (ProcessoUsuario.Status.Equals("PAUSA") || ProcessoUsuario.Status.Equals("FIM"))
+                else if (ProcessoUsuario.Status.Equals("PAUSA"))
                 {
                     await _processoUsuarioService.UpdateProcessoUsuario(ProcessoUsuario);
+                    await _logProcessoService.AddLogProcessoPausa(ProcessoUsuario);
+                    await _logAreaService.AddLogAreaPausa(ProcessoUsuario);
+                    await _logEmpresaService.AddLogEmpresaPausa(ProcessoUsuario);
+                } 
+                else if (ProcessoUsuario.Status.Equals("FIM"))
+                {
+                    await _processoUsuarioService.UpdateProcessoUsuario(ProcessoUsuario);
+                    await _logProcessoService.AddLogProcessoFim(ProcessoUsuario);
                     await _logAreaService.AddLogAreaPausa(ProcessoUsuario);
                     await _logEmpresaService.AddLogEmpresaPausa(ProcessoUsuario);
                 }
